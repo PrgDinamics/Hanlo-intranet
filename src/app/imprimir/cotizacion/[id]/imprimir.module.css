@@ -1,0 +1,252 @@
+.page {
+  background: #e9edf3;
+  min-height: 100vh;
+  padding: 72px 16px 40px;
+}
+.barra {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: #0b0b0c;
+  color: #d4d4d8;
+  font-size: 13px;
+  z-index: 10;
+}
+.barra button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 7px;
+  border: none;
+  background: var(--brand);
+  color: var(--on-brand);
+  font-weight: 500;
+  cursor: pointer;
+}
+.hoja {
+  position: relative;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  background: #fff;
+  padding: 16mm 15mm;
+  box-shadow: 0 6px 30px rgba(15, 23, 42, 0.15);
+  font-size: 10pt;
+  color: #1e293b;
+  line-height: 1.4;
+}
+.marca {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-28deg);
+  font-size: 64pt;
+  font-weight: 800;
+  color: rgba(194, 65, 12, 0.12);
+  pointer-events: none;
+  letter-spacing: 0.08em;
+}
+.head {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid #f5c518;
+}
+.emisor {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.emisor p {
+  color: #475569;
+  font-size: 9pt;
+}
+.logo {
+  max-width: 120px;
+  max-height: 64px;
+  object-fit: contain;
+}
+.razon {
+  font-size: 14pt;
+  font-weight: 700;
+  color: #0f172a;
+}
+.caja {
+  border: 1.5px solid #111;
+  background: #fffbea;
+  border-radius: 6px;
+  padding: 8px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  align-self: flex-start;
+}
+.caja span {
+  font-size: 9pt;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}
+.caja strong {
+  font-size: 13pt;
+  font-family: var(--mono);
+}
+.caja small {
+  color: #475569;
+}
+.datos {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 18px;
+  margin: 14px 0;
+}
+.datos h3,
+.obs h3 {
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+.cond td {
+  padding: 1px 0;
+  vertical-align: top;
+}
+.cond td:first-child {
+  color: #64748b;
+  padding-right: 12px;
+  white-space: nowrap;
+}
+.fuerte {
+  font-weight: 600;
+  color: #0f172a;
+}
+.intro {
+  margin: 6px 0 10px;
+}
+.items {
+  width: 100%;
+  border-collapse: collapse;
+}
+.items th {
+  background: #111111;
+  color: #fff;
+  font-weight: 500;
+  font-size: 8.5pt;
+  text-align: left;
+  padding: 6px 8px;
+}
+.items td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+.items tr {
+  break-inside: avoid;
+}
+.n {
+  text-align: right !important;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.det {
+  font-size: 8.5pt;
+  color: #475569;
+  white-space: pre-line;
+}
+.pie {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 12px;
+  break-inside: avoid;
+}
+.obs {
+  flex: 1;
+  white-space: pre-line;
+}
+.nota {
+  font-size: 8.5pt;
+  color: #64748b;
+  margin-top: 6px;
+}
+.totales {
+  min-width: 230px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.totales td {
+  padding: 4px 8px;
+}
+.totales td:last-child {
+  text-align: right;
+}
+.total td {
+  background: #f5c518;
+  color: #111;
+  font-weight: 700;
+  font-size: 11pt;
+}
+.condiciones {
+  margin-top: 18px;
+  padding: 10px 12px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-size: 8.5pt;
+  white-space: pre-line;
+  break-inside: avoid;
+}
+.firma {
+  margin-top: 28px;
+  break-inside: avoid;
+}
+@page {
+  size: A4;
+  margin: 0;
+}
+@media print {
+  .page {
+    padding: 0;
+    background: #fff;
+  }
+  .barra {
+    display: none;
+  }
+  .hoja {
+    box-shadow: none;
+    margin: 0;
+    width: auto;
+    min-height: auto;
+  }
+}
+@media (max-width: 860px) {
+  .hoja {
+    width: 100%;
+    padding: 20px;
+  }
+}
+.fotoCol {
+  width: 64px;
+}
+.foto {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  display: block;
+}
+.pago {
+  font-size: 12.5px;
+  margin: 8px 0 4px;
+}

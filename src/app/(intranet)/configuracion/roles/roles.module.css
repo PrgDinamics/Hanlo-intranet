@@ -1,0 +1,93 @@
+.lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  padding: 18px;
+}
+.rol {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.rol:hover {
+  border-color: var(--brand-strong);
+  box-shadow: var(--shadow);
+}
+.rolHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rolHead strong {
+  font-size: 15px;
+}
+.rolHead span:last-child {
+  margin-left: auto;
+  font-size: 12.5px;
+}
+.desc {
+  color: var(--text-2);
+  font-size: 13px;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+}
+.chipMuted {
+  background: var(--muted-soft);
+  color: var(--text-2);
+}
+.grupo {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.grupo legend {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-3);
+  padding: 0 6px;
+}
+.permiso {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.permiso input {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--brand);
+  flex-shrink: 0;
+}
+.permiso small {
+  display: block;
+  color: var(--text-3);
+  font-size: 12px;
+}
+.info {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+}

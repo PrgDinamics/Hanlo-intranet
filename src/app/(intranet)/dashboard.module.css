@@ -1,0 +1,225 @@
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.kpi {
+  padding: 16px 18px;
+}
+.kpiHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-2);
+  font-size: 13px;
+}
+.kpiIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  display: grid;
+  place-items: center;
+}
+.kpiIcon svg {
+  width: 16px;
+  height: 16px;
+}
+.kpiValue {
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.kpiNote {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.grid2b {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+}
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  height: 230px;
+  padding: 26px 22px 14px;
+  background-image: linear-gradient(to top, var(--border) 1px, transparent 1px);
+  background-size: 100% 25%;
+  background-origin: content-box;
+  background-clip: content-box;
+}
+.barCol {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+  outline: none;
+}
+.bar {
+  width: 100%;
+  max-width: 38px;
+  min-height: 2px;
+  background: var(--chart-1);
+  border-radius: 4px 4px 0 0;
+  transition: opacity 0.12s;
+}
+.barCol:hover .bar,
+.barCol:focus .bar {
+  opacity: 0.8;
+}
+.barVal {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.barLabel {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 6px;
+  position: absolute;
+  bottom: -20px;
+}
+.tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% - 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: #fff;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  white-space: nowrap;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 5;
+  pointer-events: none;
+}
+.barCol:hover .tip,
+.barCol:focus .tip {
+  display: flex;
+}
+.estados {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.estadoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.estadoN {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.track {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--muted-soft);
+  overflow: hidden;
+}
+.fill {
+  height: 100%;
+  border-radius: 4px;
+}
+.t_ok { background: var(--ok); }
+.t_warn { background: var(--warn); }
+.t_danger { background: var(--danger); }
+.t_info { background: var(--info); }
+.t_brand { background: var(--brand-strong); }
+.t_muted { background: var(--text-3); }
+.counts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.counts a {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+.counts a:nth-child(odd) {
+  border-right: 1px solid var(--border);
+}
+.counts a:nth-last-child(-n + 2) {
+  border-bottom: none;
+}
+.counts a:hover {
+  background: var(--surface-2);
+}
+.counts strong {
+  font-size: 24px;
+  font-weight: 650;
+}
+.counts span {
+  color: var(--text-2);
+  font-size: 13px;
+}
+.link {
+  color: var(--brand-ink);
+}
+.link:hover {
+  text-decoration: underline;
+}
+@media (max-width: 1100px) {
+  .kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid2,
+  .grid2b {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .kpis {
+    grid-template-columns: 1fr;
+  }
+}
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  margin-bottom: 18px;
+  border-radius: var(--radius);
+  background: var(--warn-soft);
+  color: var(--warn);
+  border: 1px solid #f3d9a8;
+}
+.aviso span {
+  flex: 1;
+}
+.aviso svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.aviso:hover {
+  border-color: var(--warn);
+}
+.seguimiento {
+  margin-bottom: 18px;
+}

@@ -1,0 +1,26 @@
+.cambios {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+}
+.campo {
+  color: var(--text-2);
+  font-weight: 600;
+}
+.antes {
+  color: var(--text-3);
+  text-decoration: line-through;
+}
+.despues {
+  color: var(--text);
+  font-weight: 500;
+}
+.link {
+  color: var(--brand-ink);
+  font-weight: 500;
+}
+.link:hover {
+  text-decoration: underline;
+}
