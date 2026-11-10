@@ -1,0 +1,174 @@
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  width: 100%;
+  max-width: 420px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 13.5px;
+  margin-right: auto;
+}
+.trigger:hover {
+  border-color: var(--border-strong);
+}
+.trigger svg {
+  width: 16px;
+  height: 16px;
+}
+.trigger span {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trigger kbd,
+.pie kbd {
+  font-family: var(--mono);
+  font-size: 11px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+  background: var(--surface);
+  color: var(--text-2);
+}
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 10vh 16px 16px;
+}
+.panel {
+  width: 100%;
+  max-width: 640px;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 72vh;
+}
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+.inputRow svg {
+  width: 18px;
+  height: 18px;
+  color: var(--text-3);
+}
+.inputRow input {
+  flex: 1;
+  height: 52px;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  background: transparent;
+}
+.cargando {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.lista {
+  list-style: none;
+  overflow-y: auto;
+  padding: 6px;
+}
+.grupo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  padding: 10px 10px 4px;
+}
+.item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.itemHi {
+  background: var(--brand-soft);
+}
+.icon {
+  width: 17px;
+  height: 17px;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+.texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.texto strong {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.texto small {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.enter {
+  width: 15px;
+  height: 15px;
+  color: var(--brand-ink);
+}
+.vacio {
+  padding: 18px;
+  text-align: center;
+  color: var(--text-3);
+}
+.pie {
+  display: flex;
+  gap: 16px;
+  padding: 9px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 12px;
+  color: var(--text-3);
+}
+.pie span {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+@media (max-width: 960px) {
+  .trigger {
+    margin-left: 44px;
+  }
+  .trigger kbd {
+    display: none;
+  }
+}

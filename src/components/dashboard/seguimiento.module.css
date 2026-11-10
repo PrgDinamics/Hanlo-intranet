@@ -1,0 +1,96 @@
+.lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+.fila {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) auto 120px auto;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.15s;
+}
+.fila:last-child {
+  border-bottom: none;
+}
+.ocupada {
+  opacity: 0.5;
+}
+.motivo {
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 99px;
+  padding: 3px 10px;
+  width: fit-content;
+}
+.vencida {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.por_vencer {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.sin_respuesta {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.info {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.codigo {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--brand-ink);
+  flex-shrink: 0;
+}
+.codigo:hover {
+  text-decoration: underline;
+}
+.cliente {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.total {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.acciones {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.ok svg {
+  color: var(--ok);
+}
+.vacio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 18px;
+  color: var(--text-2);
+}
+.vacio svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ok);
+}
+@media (max-width: 1100px) {
+  .fila {
+    grid-template-columns: 1fr auto;
+  }
+  .info,
+  .acciones {
+    grid-column: 1 / -1;
+  }
+  .acciones {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}

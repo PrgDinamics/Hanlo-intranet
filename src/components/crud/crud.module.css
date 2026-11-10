@@ -1,0 +1,79 @@
+.formActions {
+  padding-top: 6px;
+}
+.image {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.imageBox {
+  width: 84px;
+  height: 84px;
+  border-radius: 10px;
+  border: 1px dashed var(--border-strong);
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  color: var(--text-3);
+}
+.imageBox img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--text-3);
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.thumb svg {
+  width: 16px;
+  height: 16px;
+}
+.withBtn {
+  display: flex;
+  gap: 6px;
+}
+.lookupBtn {
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0 14px;
+  background: var(--side-bg);
+  border-color: var(--side-bg);
+  color: #fff;
+  font-weight: 600;
+}
+.lookupBtn svg {
+  color: var(--brand);
+}
+.lookupBtn:hover:not(:disabled) {
+  background: #26262a;
+  border-color: #26262a;
+}
+.docInput {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 15px;
+  letter-spacing: 0.06em;
+}
+.imageZoom {
+  border-radius: 10px;
+}
+.imageZoom img {
+  object-fit: contain;
+  background: #fff;
+}

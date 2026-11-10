@@ -1,0 +1,18 @@
+.logo {
+  display: inline-flex;
+  flex-direction: column;
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  font-family: var(--font);
+}
+.logo em {
+  font-style: normal;
+  color: var(--brand);
+}
+.oscuro {
+  color: #fff;
+}
+.claro {
+  color: #111;
+}

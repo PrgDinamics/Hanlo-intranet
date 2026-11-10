@@ -1,0 +1,77 @@
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.hoy,
+.rango {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.sunat,
+.manual {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+.sunat {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+}
+.manual {
+  background: var(--muted-soft);
+  color: var(--text-2);
+}
+.valores {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.valores div {
+  display: flex;
+  flex-direction: column;
+}
+.valores small {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.valores strong {
+  font-size: 26px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.var {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.var svg {
+  width: 15px;
+  height: 15px;
+}
+.sube {
+  color: var(--danger);
+}
+.baja {
+  color: var(--ok);
+}
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
