@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { MAX_COLORES, impresionPorUnidad } from "@/lib/impresion";
 import { getSesion } from "@/lib/sesion";
 import { mensajeError } from "@/lib/errores";
 import type { Resultado } from "@/lib/acciones";
@@ -49,11 +50,13 @@ export type ItemInput = {
   color: string;
   /** Factor con el que se calculó el precio (venta = costo ÷ factor); null = precio manual */
   factor: number | null;
+  /** Colores o impresiones del logo por producto (impresiones = cantidad × colores) */
+  impresion_colores: number;
 };
 
 /** Fila sin nada escrito: sin descripción, artículo ni detalle, precio 0 y cantidad 1 (o vacía) */
 function filaVacia(i: ItemInput) {
-  return !i.descripcion.trim() && !i.articulo_id && !(i.detalle ?? "").trim()
+  return !i.descripcion.trim() && !i.articulo_id && !(i.detalle ?? "").trim() && !Number(i.impresion_colores)
     && !Number(i.precio_unitario) && (!Number(i.cantidad) || Number(i.cantidad) === 1);
 }
 
@@ -89,7 +92,8 @@ export async function guardarCotizacion(
     if (i.precio_unitario > 100_000_000) return { ok: false, error: `Ítem ${n + 1}: el precio es demasiado grande` };
     if (i.cantidad * i.precio_unitario > 1_000_000_000) return { ok: false, error: `Ítem ${n + 1}: el importe supera S/ 1,000 millones. Revisa cantidad y precio` };
     if (!(i.precio_unitario >= 0)) return { ok: false, error: `Ítem ${n + 1}: precio inválido` };
-    if (i.descuento_pct < 0 || i.descuento_pct > 100) return { ok: false, error: `Ítem ${n + 1}: descuento inválido` };
+    const col = Number(i.impresion_colores ?? 0);
+    if (!Number.isInteger(col) || col < 0 || col > MAX_COLORES) return { ok: false, error: `Ítem ${n + 1}: los colores de impresión van de 0 a ${MAX_COLORES}` };
     if (i.factor !== null && i.factor !== undefined && !(i.factor > 0 && i.factor <= 1)) return { ok: false, error: `Ítem ${n + 1}: factor inválido` };
   }
 
@@ -104,7 +108,7 @@ export async function guardarCotizacion(
         .from("articulo_proveedor")
         .select("articulo_id, proveedor_id, precio_venta, precio_ciento, precio_millar, desde_ciento, desde_millar, moneda")
         .in("articulo_id", artIds),
-      supabase.from("empresas").select("igv_pct, margen_pct").eq("id", cab.empresa_id).single(),
+      supabase.from("empresas").select("igv_pct, margen_pct, costo_impresion").eq("id", cab.empresa_id).single(),
     ]);
     // Sin los precios no se puede revisar el mínimo: no se guarda (nunca se salta la validación)
     if (ePrecios || eEmp) {
@@ -121,16 +125,25 @@ export async function guardarCotizacion(
     for (const [n, i] of limpios.entries()) {
       if (!i.articulo_id) continue;
       const max = precioMaximo((precios ?? []).filter((p) => p.articulo_id === i.articulo_id), i.cantidad, ctx);
-      if (max && i.precio_unitario < max.precio - 0.00005) {
+      // La impresión del logo también es costo: el mínimo es proveedor más alto + impresión por unidad
+      let imp = impresionPorUnidad(i.impresion_colores, Number(emp?.costo_impresion ?? 0), cab.moneda, tc);
+      if (cab.precios_incluyen_igv) imp = imp * (1 + ctx.igvPct / 100);
+      const minimo = Math.round(((max?.precio ?? 0) + imp) * 10000) / 10000;
+      if (minimo > 0 && i.precio_unitario < minimo - 0.00005) {
         return {
           ok: false,
-          error: `Ítem ${n + 1}: para ${i.cantidad} unidades el precio no puede ser menor al costo más alto de sus proveedores (${max.precio}). Elige un factor o usa la columna de descuento.`,
+          error: `Ítem ${n + 1}: para ${i.cantidad} unidades el precio no puede ser menor al costo (proveedor más alto${imp ? " e impresión" : ""}: ${minimo}). Elige un factor.`,
         };
       }
     }
   }
 
-  const { data: id, error } = await supabase.rpc("guardar_cotizacion", { p_cab: cab, p_items: limpios });
+  // El descuento por ítem ya no se usa: siempre 0
+  const filas = limpios.map((i) => ({
+    ...i, descuento_pct: 0,
+    impresion_colores: Number(i.impresion_colores) || 0,
+  }));
+  const { data: id, error } = await supabase.rpc("guardar_cotizacion", { p_cab: cab, p_items: filas });
   if (error) return { ok: false, error: mensajeError(error) };
 
   if (emitir) {

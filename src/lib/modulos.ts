@@ -266,6 +266,10 @@ export const MODULOS: Record<string, Modulo> = {
         name: "factores", label: "Factores para cotizar", type: "text", span: 12, default: "0.60, 0.75, 0.77, 0.80",
         hint: "Separados por coma. Precio de venta = costo del proveedor ÷ factor (0.75 → costo 1.50 = venta 2.00)",
       },
+      {
+        name: "costo_impresion", label: "Costo por impresión de logo (S/)", type: "number", span: 6, default: 0.5, step: "0.01",
+        hint: "Se suma al costo del producto antes del factor. Ej. 2,000 und a 1 color = 2,000 impresiones × S/ 0.50",
+      },
       { name: "pie_cotizacion", label: "Pie de cotización", type: "textarea", span: 12, hint: "Condiciones, cuentas bancarias, etc. Se imprime al final" },
       { name: "logo_url", label: "Logo", type: "image", span: 12 },
       ACTIVO,
