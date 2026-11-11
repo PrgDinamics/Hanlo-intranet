@@ -5,6 +5,7 @@ import { fecha, fechaLarga, money, num, pu } from "@/lib/format";
 import { ImprimirBoton } from "./ImprimirBoton";
 import { Logo } from "@/components/ui/Logo";
 import s from "./imprimir.module.css";
+import { textoImpresion } from "@/lib/impresion";
 
 export async function generateMetadata({ params }: PageProps<"/imprimir/cotizacion/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -106,6 +107,7 @@ export default async function ImprimirPage({ params }: PageProps<"/imprimir/coti
                 <td>
                   <div className={s.fuerte}>{i.descripcion}</div>
                   {i.color && <div className={s.det}>Color: {i.color}</div>}
+                  {Number(i.impresion_colores) > 0 && <div className={s.det}>{textoImpresion(i.cantidad, i.impresion_colores)}</div>}
                   {i.detalle && <div className={s.det}>{i.detalle}</div>}
                 </td>
                 <td>{i.unidad}</td>

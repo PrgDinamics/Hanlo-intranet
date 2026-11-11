@@ -49,10 +49,14 @@ export default async function EditarPage({ params }: PageProps<"/cotizaciones/[i
           unidad: i.unidad,
           cantidad: Number(i.cantidad),
           precio_costo: Number(i.precio_costo),
-          precio_unitario: Number(i.precio_unitario),
-          descuento_pct: Number(i.descuento_pct),
+          // El descuento ya no existe: si una cotización antigua lo tenía, queda incluido en el precio
+          precio_unitario: Number(i.descuento_pct)
+            ? Math.round(Number(i.precio_unitario) * (1 - Number(i.descuento_pct) / 100) * 10000) / 10000
+            : Number(i.precio_unitario),
+          descuento_pct: 0,
           color: i.color ?? "",
-          factor: i.factor === null ? null : Number(i.factor),
+          factor: i.factor === null || Number(i.descuento_pct) ? null : Number(i.factor),
+          impresion_colores: Number(i.impresion_colores ?? 0),
         }))}
       />
     </>

@@ -9,6 +9,7 @@ import { fecha, fechaHora, money, num, pu } from "@/lib/format";
 import { Acciones } from "./Acciones";
 import ui from "@/components/ui/ui.module.css";
 import s from "./detalle.module.css";
+import { textoImpresion } from "@/lib/impresion";
 
 export default async function CotizacionPage({ params }: PageProps<"/cotizaciones/[id]">) {
   const { id } = await params;
@@ -25,6 +26,8 @@ export default async function CotizacionPage({ params }: PageProps<"/cotizacione
   ]);
   const nombreUsuario = new Map((usuarios ?? []).map((u) => [u.id, u.nombre]));
   const costo = (items ?? []).reduce((a, i) => a + Number(i.cantidad) * Number(i.precio_costo), 0);
+  // Cotizaciones antiguas con descuento: la columna solo aparece si algún ítem lo tiene
+  const hayDescuento = (items ?? []).some((i) => Number(i.descuento_pct));
   const margen = costo > 0 ? ((Number(c.subtotal) - costo) / costo) * 100 : null;
 
   return (
@@ -82,7 +85,7 @@ export default async function CotizacionPage({ params }: PageProps<"/cotizacione
                   <tr>
                     <th>#</th><th>Descripción</th><th>Proveedor</th><th>Und.</th>
                     <th className={ui.num}>Cant.</th><th className={ui.num}>P. unit.</th>
-                    <th className={ui.num}>Dsct.</th><th className={ui.num}>Importe</th>
+                    {hayDescuento && <th className={ui.num}>Dsct.</th>}<th className={ui.num}>Importe</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -92,13 +95,14 @@ export default async function CotizacionPage({ params }: PageProps<"/cotizacione
                       <td>
                         <div className={ui.strong}>{i.descripcion}</div>
                         {i.color && <div className={s.det}>Color: {i.color}</div>}
+                        {Number(i.impresion_colores) > 0 && <div className={s.det}>{textoImpresion(i.cantidad, i.impresion_colores)}</div>}
                   {i.detalle && <div className={s.det}>{i.detalle}</div>}
                       </td>
                       <td className={ui.muted}>{i.proveedor?.razon_social}</td>
                       <td>{i.unidad}</td>
                       <td className={ui.num}>{num(i.cantidad)}</td>
                       <td className={ui.num}>{pu(i.precio_unitario)}</td>
-                      <td className={ui.num}>{Number(i.descuento_pct) ? `${num(i.descuento_pct, 1)}%` : ""}</td>
+                      {hayDescuento && <td className={ui.num}>{Number(i.descuento_pct) ? `${num(i.descuento_pct, 1)}%` : ""}</td>}
                       <td className={`${ui.num} ${ui.strong}`}>{num(i.importe)}</td>
                     </tr>
                   ))}
