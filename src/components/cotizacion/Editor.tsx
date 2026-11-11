@@ -19,6 +19,7 @@ import {
   type ContextoPrecio,
 } from "@/lib/precios";
 import { UNIDADES } from "@/lib/modulos";
+import { COSTO_IMPRESION_DEFECTO, MAX_COLORES, impresionPorUnidad, totalImpresiones } from "@/lib/impresion";
 import type { ArticuloCat, DatosEditor, PrecioCat } from "./datos";
 import { FotoZoom } from "@/components/ui/FotoZoom";
 import ui from "@/components/ui/ui.module.css";
@@ -115,6 +116,11 @@ export function Editor({
   const ventaDe = (base: number, factor: number | null, formaId: string | null, c: ContextoPrecio = ctx) =>
     factor ? ventaConFactor(base, factor, recargoDe(formaId), c) : base;
 
+  /** Impresión del logo que le toca a cada unidad (se suma al costo antes del factor) */
+  const costoImpresion = Number(empresa?.costo_impresion ?? COSTO_IMPRESION_DEFECTO);
+  const impDe = (it: Pick<ItemInput, "impresion_colores">, c: ContextoPrecio = ctx) =>
+    impresionPorUnidad(it.impresion_colores, costoImpresion, c.moneda, c.tipoCambio);
+
   const agregar = (a: ArticuloCat, p?: PrecioCat) => {
     setAgregadosCat((l) => (l.some((x) => x.id === a.id) ? l.map((x) => (x.id === a.id ? a : x)) : [...l, a]));
     const max = maxDe(a, 1);
@@ -134,6 +140,7 @@ export function Editor({
         descuento_pct: 0,
         color: "",
         factor: max ? factorInicial : null,
+        impresion_colores: 0,
       },
     ]);
   };
@@ -144,6 +151,7 @@ export function Editor({
       {
         key: nuevaKey(), articulo_id: null, proveedor_id: null, descripcion: "", detalle: "", unidad: "Unidad",
         cantidad: 1, precio_costo: 0, precio_unitario: 0, descuento_pct: 0, color: "", factor: null,
+        impresion_colores: 0,
       },
     ]);
 
@@ -152,18 +160,24 @@ export function Editor({
     it: ItemState, cambios: Partial<ItemState>, c: ContextoPrecio = ctx, formaId: string | null = cab.forma_pago_id,
   ): ItemState => {
     const n = { ...it, ...cambios };
+    const imp = impDe(n, c);
     const art = artPorId.get(n.articulo_id ?? "");
-    if (!art) return n;
+    if (!art) {
+      // Ítem libre: el precio es manual; solo se ajusta el costo con la impresión nueva
+      const antes = impDe(it, c);
+      return { ...n, precio_costo: round(Math.max(0, n.precio_costo - antes + imp), 4) };
+    }
     const max = maxDe(art, n.cantidad || 1, c);
     const prov = art.precios.find((x) => x.proveedor_id === n.proveedor_id);
-    // Con factor: costo más alto ÷ factor (+ recargo). Manual: se respeta el precio escrito, nunca bajo el costo.
+    // Con factor: (costo más alto + impresión) ÷ factor (+ recargo). Manual: se respeta el precio escrito, nunca bajo el costo.
+    const base = max ? round(max.precio + imp, 4) : 0;
     const precio = !max ? n.precio_unitario
-      : n.factor ? ventaDe(max.precio, n.factor, formaId, c)
-      : Math.max(n.precio_unitario, max.precio);
+      : n.factor ? ventaDe(base, n.factor, formaId, c)
+      : Math.max(n.precio_unitario, base);
     return {
       ...n,
       precio_unitario: precio,
-      precio_costo: prov ? costoDe(prov, n.cantidad || 1, c) : n.precio_costo,
+      precio_costo: prov ? round(costoDe(prov, n.cantidad || 1, c) + imp, 4) : n.precio_costo,
     };
   };
 
@@ -178,6 +192,11 @@ export function Editor({
 
   const cambiarCantidad = (it: ItemState, cantidad: number) =>
     setItems((list) => list.map((i) => (i.key === it.key ? repreciar(i, { cantidad }) : i)));
+
+  const cambiarColores = (it: ItemState, colores: number) => {
+    const v = Math.min(MAX_COLORES, Math.max(0, Math.round(Number(colores) || 0)));
+    setItems((list) => list.map((i) => (i.key === it.key ? repreciar(i, { impresion_colores: v }) : i)));
+  };
 
   const cambiarProveedor = (it: ItemState, proveedorId: string) => {
     const art = artPorId.get(it.articulo_id ?? "");
@@ -209,7 +228,7 @@ export function Editor({
   };
 
   // Totales (misma fórmula que recalcular_cotizacion en la BD)
-  const importe = (i: ItemInput) => round(i.cantidad * i.precio_unitario * (1 - i.descuento_pct / 100), 2);
+  const importe = (i: ItemInput) => round(i.cantidad * i.precio_unitario, 2);
   const suma = items.reduce((a, i) => a + importe(i), 0);
   const subtotal = cab.precios_incluyen_igv ? round(suma / (1 + igvPct / 100), 2) : round(suma, 2);
   const igv = cab.precios_incluyen_igv ? round(suma - subtotal, 2) : round(subtotal * (igvPct / 100), 2);
@@ -221,7 +240,9 @@ export function Editor({
 
   const bajoMaximo = (it: ItemInput) => {
     const max = maxDe(artPorId.get(it.articulo_id ?? ""), it.cantidad || 1);
-    return max && it.precio_unitario < max.precio - 0.00005 ? max : null;
+    if (!max) return null;
+    const minimo = round(max.precio + impDe(it), 4);
+    return it.precio_unitario < minimo - 0.00005 ? { ...max, precio: minimo } : null;
   };
 
   const guardar = (emitir: boolean) => {
@@ -240,7 +261,7 @@ export function Editor({
     const n = items.findIndex((it) => bajoMaximo(it));
     if (n >= 0) {
       const max = bajoMaximo(items[n])!;
-      setError(`Ítem ${n + 1}: el precio no puede ser menor al más alto de sus proveedores (${money(max.precio, moneda)}). Si quieres rebajar, usa la columna de descuento.`);
+      setError(`Ítem ${n + 1}: el precio no puede ser menor al costo (proveedor más alto e impresión: ${money(max.precio, moneda)}). Elige un factor.`);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -390,7 +411,7 @@ export function Editor({
                     <th style={{ width: 96 }}>Und.</th>
                     <th className={ui.num} style={{ width: 96 }}>Cant.</th>
                     <th className={ui.num} style={{ width: 132 }}>Factor · P. unit. {SIMBOLO[moneda]}</th>
-                    <th className={ui.num} style={{ width: 84 }}>Dsct %</th>
+                    <th className={s.thImp} style={{ width: 118 }} title="Colores del logo en cada producto. Impresiones = cantidad × colores">Impresión logo</th>
                     <th className={ui.num} style={{ width: 104 }}>Importe</th>
                     <th style={{ width: 44 }}></th>
                   </tr>
@@ -399,10 +420,11 @@ export function Editor({
                   {items.map((it, n) => {
                     const art = it.articulo_id ? artPorId.get(it.articulo_id) : undefined;
                     const sinIgv = cab.precios_incluyen_igv ? it.precio_unitario / (1 + igvPct / 100) : it.precio_unitario;
-                    const neto = sinIgv * (1 - it.descuento_pct / 100);
+                    const neto = sinIgv;
                     const margen = it.precio_costo > 0 ? ((neto - it.precio_costo) / it.precio_costo) * 100 : null;
                     const q = it.cantidad || 1;
                     const maxItem = maxDe(art, q);
+                    const impItem = impDe(it);
                     const bajo = bajoMaximo(it);
                     const precioProv = (p: PrecioCat) => aCotizacion(precioPorCantidad(p, q).precio, p.moneda, ctx);
                     const opciones = art ? [...art.precios].sort((x, y) => precioProv(y) - precioProv(x)) : [];
@@ -513,7 +535,7 @@ export function Editor({
                               <option value="">Manual</option>
                             </select>
                           )}
-                          <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" min={maxItem?.precio ?? 0} step="0.0001"
+                          <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" min={maxItem ? round(maxItem.precio + impItem, 4) : 0} step="0.0001"
                             value={it.precio_unitario}
                             style={bajo ? { borderColor: "var(--danger)" } : undefined}
                             onChange={(e) => setI(it.key, { precio_unitario: Number(e.target.value), factor: null })} />
@@ -524,17 +546,34 @@ export function Editor({
                             </button>
                           ) : maxItem ? (
                             <div className={s.maxTag}>
-                              Costo {num(maxItem.precio, 2)}{it.factor ? ` ÷ ${it.factor.toFixed(2)}` : ""}
+                              Costo {num(maxItem.precio, 2)}{impItem > 0 ? ` + logo ${num(impItem, 2)}` : ""}{it.factor ? ` ÷ ${it.factor.toFixed(2)}` : ""}
                               {it.factor && recargo > 0 ? ` +${num(recargo, 0)}%` : ""}
                               <br />{TRAMO_LABEL[maxItem.tramo]}{art && art.precios.length > 1 ? " · más alto" : ""}
                             </div>
                           ) : null}
                         </td>
                         <td>
-                          <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" min="0" max="100" step="0.5" value={it.descuento_pct}
-                            onChange={(e) => setI(it.key, { descuento_pct: Number(e.target.value) })} />
+                          <div className={`${s.imp} ${it.impresion_colores ? s.impOn : ""}`}>
+                            <button type="button" className={s.impBtn} aria-label="Quitar un color"
+                              disabled={!it.impresion_colores} onClick={() => cambiarColores(it, it.impresion_colores - 1)}>−</button>
+                            <input className={s.impNum} type="number" min="0" max={MAX_COLORES} step="1" inputMode="numeric"
+                              value={it.impresion_colores} aria-label="Colores del logo por producto"
+                              onChange={(e) => cambiarColores(it, Number(e.target.value))} />
+                            <button type="button" className={s.impBtn} aria-label="Agregar un color"
+                              disabled={it.impresion_colores >= MAX_COLORES} onClick={() => cambiarColores(it, it.impresion_colores + 1)}>+</button>
+                          </div>
+                          <div className={s.impInfo}>
+                            {it.impresion_colores > 0 ? (
+                              <>
+                                <strong>{num(totalImpresiones(it.cantidad, it.impresion_colores), 0)}</strong> impresiones
+                                <br />+{money(impItem, moneda)} c/u
+                              </>
+                            ) : "Colores del logo"}
+                          </div>
                         </td>
-                        <td className={`${ui.num} ${ui.strong}`}>{num(importe(it))}</td>
+                        <td className={`${ui.num} ${ui.strong}`}>
+                          {num(importe(it))}
+                        </td>
                         <td>
                           <button className={`${ui.btn} ${ui.ghost} ${ui.icon}`} title="Quitar ítem"
                             onClick={() => setItems((l) => l.filter((x) => x.key !== it.key))}>

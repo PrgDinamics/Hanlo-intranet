@@ -318,3 +318,52 @@
   background: var(--brand-soft);
   border-color: var(--brand-strong);
 }
+
+/* Impresión del logo: colores por producto, con botones − y + */
+.thImp { text-align: center !important; }
+.imp {
+  display: grid;
+  grid-template-columns: 28px 1fr 28px;
+  align-items: center;
+  height: 34px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  overflow: hidden;
+}
+.impOn { border-color: var(--brand-strong); background: var(--brand-soft); }
+.impBtn {
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.impBtn:hover:not(:disabled) { background: var(--muted-soft); color: var(--text); }
+.impBtn:disabled { color: var(--text-3); opacity: 0.45; cursor: default; }
+.impNum {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  -moz-appearance: textfield;
+}
+.impNum::-webkit-outer-spin-button,
+.impNum::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.impNum:focus { outline: none; }
+.imp:focus-within { box-shadow: 0 0 0 3px var(--brand-soft); border-color: var(--brand-strong); }
+.impInfo {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--text-3);
+}
+.impOn + .impInfo { color: var(--brand-ink); }

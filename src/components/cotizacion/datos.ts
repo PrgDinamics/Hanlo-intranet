@@ -32,7 +32,7 @@ export type ArticuloCat = {
   precios: PrecioCat[];
 };
 export type DatosEditor = {
-  empresas: { id: string; razon_social: string; igv_pct: number; margen_pct: number; factores: string }[];
+  empresas: { id: string; razon_social: string; igv_pct: number; margen_pct: number; factores: string; costo_impresion: number }[];
   clientes: { id: string; nombre: string; num_doc: string; agente_id: string | null }[];
   agentes: { id: string; nombre: string }[];
   formas: { id: string; nombre: string; dias_credito: number; recargo_pct: number }[];
@@ -125,7 +125,7 @@ export async function buscarEnCatalogo(q: string): Promise<ArticuloCat[]> {
 export async function cargarDatosEditor(articuloIds: string[] = []): Promise<DatosEditor> {
   const { supabase, perfil, permisos } = await getSesion();
   const [emp, cliData, age, fp, tc, articulos] = await Promise.all([
-    supabase.from("empresas").select("id, razon_social, igv_pct, margen_pct, factores").eq("activo", true).order("razon_social"),
+    supabase.from("empresas").select("id, razon_social, igv_pct, margen_pct, factores, costo_impresion").eq("activo", true).order("razon_social"),
     todos((a, b) => supabase.from("clientes").select("id, nombre, num_doc, agente_id").eq("activo", true).order("nombre").range(a, b)),
     supabase.from("agentes").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("formas_pago").select("id, nombre, dias_credito, recargo_pct").eq("activo", true).order("dias_credito"),
