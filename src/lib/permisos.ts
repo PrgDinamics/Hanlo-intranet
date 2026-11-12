@@ -14,6 +14,7 @@ export const PERMISOS = [
   { clave: "empresas", grupo: "Configuración", label: "Empresas (factores, pie de cotización, logo)" },
   { clave: "reportes", grupo: "Gerencia", label: "Reportes" },
   { clave: "actividad", grupo: "Gerencia", label: "Registro de actividad" },
+  { clave: "revistas", grupo: "Web", label: "Revistas virtuales", hint: "Publicar, ocultar y eliminar revistas en hanloinnova.com/revistas" },
 ] as const;
 
 export type Permiso = (typeof PERMISOS)[number]["clave"];

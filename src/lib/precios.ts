@@ -100,6 +100,20 @@ export function costoMaximo<T extends PrecioProveedor>(precios: T[], cantidad: n
   return precioMaximo(precios, cantidad, { ...ctx, incluyeIgv: false, margenPct: 0 });
 }
 
+/**
+ * Precio mínimo de venta de un ítem: costo más alto del proveedor + impresión por unidad,
+ * con IGV si los precios lo incluyen. Es la MISMA fórmula que el servidor y el trigger
+ * item_precio_minimo de la base (redondeo a 4 decimales en los mismos pasos).
+ * impresion: costo de impresión por unidad sin IGV (ya en la moneda de la cotización).
+ */
+export function minimoVenta<T extends PrecioProveedor>(precios: T[], cantidad: number, ctx: ContextoPrecio, impresion: number) {
+  const max = precioMaximo(precios, cantidad, { ...ctx, margenPct: 0 });
+  let imp = Math.round((Number(impresion) || 0) * 10000) / 10000;
+  if (ctx.incluyeIgv) imp = imp * (1 + ctx.igvPct / 100);
+  const minimo = Math.round(((max?.precio ?? 0) + imp) * 10000) / 10000;
+  return { minimo, max, impresion: imp };
+}
+
 /** Precio unitario de venta a partir del costo, el factor y el recargo de la forma de pago */
 export function ventaConFactor(costo: number, factor: number, recargoPct: number, ctx: Pick<ContextoPrecio, "incluyeIgv" | "igvPct">) {
   if (!(costo > 0) || !(factor > 0)) return 0;

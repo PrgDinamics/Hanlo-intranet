@@ -6,7 +6,7 @@ import { getSesion } from "@/lib/sesion";
 import { mensajeError } from "@/lib/errores";
 import type { Resultado } from "@/lib/acciones";
 import { TRANSICIONES, type EstadoCotizacion } from "@/lib/estados";
-import { precioMaximo } from "@/lib/precios";
+import { minimoVenta } from "@/lib/precios";
 
 /** Ítem sin stock suficiente según las listas de proveedores más recientes */
 export type Faltante = { orden: number; descripcion: string; color: string | null; cantidad: number; disponible: number };
@@ -124,15 +124,14 @@ export async function guardarCotizacion(
     };
     for (const [n, i] of limpios.entries()) {
       if (!i.articulo_id) continue;
-      const max = precioMaximo((precios ?? []).filter((p) => p.articulo_id === i.articulo_id), i.cantidad, ctx);
       // La impresión del logo también es costo: el mínimo es proveedor más alto + impresión por unidad
-      let imp = impresionPorUnidad(i.impresion_colores, Number(emp?.costo_impresion ?? 0), cab.moneda, tc);
-      if (cab.precios_incluyen_igv) imp = imp * (1 + ctx.igvPct / 100);
-      const minimo = Math.round(((max?.precio ?? 0) + imp) * 10000) / 10000;
+      const imp = impresionPorUnidad(i.impresion_colores, Number(emp?.costo_impresion ?? 0), cab.moneda, tc);
+      const { minimo, max } = minimoVenta((precios ?? []).filter((p) => p.articulo_id === i.articulo_id), i.cantidad, ctx, imp);
       if (minimo > 0 && i.precio_unitario < minimo - 0.00005) {
+        const que = max && imp ? "proveedor más alto e impresión" : max ? "proveedor más alto" : "impresión del logo";
         return {
           ok: false,
-          error: `Ítem ${n + 1}: para ${i.cantidad} unidades el precio no puede ser menor al costo (proveedor más alto${imp ? " e impresión" : ""}: ${minimo}). Elige un factor.`,
+          error: `Ítem ${n + 1}: para ${i.cantidad} unidades el precio no puede ser menor al costo (${que}: ${minimo}). Sube el precio${max ? " o elige un factor" : ""}.`,
         };
       }
     }

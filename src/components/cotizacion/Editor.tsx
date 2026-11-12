@@ -15,7 +15,7 @@ import { buscarCatalogo } from "@/lib/acciones-catalogo";
 import { RegistroForm } from "@/components/crud/RegistroForm";
 import { convertir, fecha, money, num, round, SIMBOLO, type Moneda } from "@/lib/format";
 import {
-  aCotizacion, costoMaximo, FACTORES_DEFECTO, parseFactores, precioPorCantidad, TRAMO_LABEL, ventaConFactor,
+  aCotizacion, costoMaximo, FACTORES_DEFECTO, minimoVenta, parseFactores, precioPorCantidad, TRAMO_LABEL, ventaConFactor,
   type ContextoPrecio,
 } from "@/lib/precios";
 import { UNIDADES } from "@/lib/modulos";
@@ -169,16 +169,14 @@ export function Editor({
     }
     const max = maxDe(art, n.cantidad || 1, c);
     const prov = art.precios.find((x) => x.proveedor_id === n.proveedor_id);
-    // Con factor: (costo más alto + impresión) ÷ factor (+ recargo). Manual: se respeta el precio escrito, nunca bajo el costo.
+    // Con factor: (costo más alto + impresión) ÷ factor (+ recargo, + IGV si corresponde).
+    // Manual: se respeta el precio escrito, nunca bajo el mínimo (misma fórmula que el servidor).
     const base = max ? round(max.precio + imp, 4) : 0;
-    const precio = !max ? n.precio_unitario
-      : n.factor ? ventaDe(base, n.factor, formaId, c)
-      : Math.max(n.precio_unitario, base);
-    return {
-      ...n,
-      precio_unitario: precio,
-      precio_costo: prov ? round(costoDe(prov, n.cantidad || 1, c) + imp, 4) : n.precio_costo,
-    };
+    const { minimo } = minimoVenta(art.precios, n.cantidad || 1, c, imp);
+    const precio = n.factor && max ? ventaDe(base, n.factor, formaId, c) : Math.max(n.precio_unitario, minimo);
+    // Sin proveedor elegido: se mantiene el costo escrito y solo se ajusta la impresión
+    const costo = prov ? round(costoDe(prov, n.cantidad || 1, c) + imp, 4) : round(Math.max(0, n.precio_costo - impDe(it, c) + imp), 4);
+    return { ...n, precio_unitario: precio, precio_costo: costo };
   };
 
   const cambiarFactor = (it: ItemState, factor: number | null) =>
@@ -239,10 +237,12 @@ export function Editor({
   const margenTotal = costoTotal > 0 ? ((subtotal - costoTotal) / costoTotal) * 100 : null;
 
   const bajoMaximo = (it: ItemInput) => {
-    const max = maxDe(artPorId.get(it.articulo_id ?? ""), it.cantidad || 1);
-    if (!max) return null;
-    const minimo = round(max.precio + impDe(it), 4);
-    return it.precio_unitario < minimo - 0.00005 ? { ...max, precio: minimo } : null;
+    const art = artPorId.get(it.articulo_id ?? "");
+    if (!art) return null;
+    // Misma fórmula que el servidor y la base: proveedor más alto + impresión (+ IGV si los precios lo incluyen)
+    const { minimo, max, impresion } = minimoVenta(art.precios, it.cantidad || 1, ctx, impDe(it));
+    const que = max && impresion ? "proveedor más alto e impresión" : max ? "proveedor más alto" : "impresión del logo";
+    return minimo > 0 && it.precio_unitario < minimo - 0.00005 ? { precio: minimo, conFactor: !!max, que } : null;
   };
 
   const guardar = (emitir: boolean) => {
@@ -261,7 +261,7 @@ export function Editor({
     const n = items.findIndex((it) => bajoMaximo(it));
     if (n >= 0) {
       const max = bajoMaximo(items[n])!;
-      setError(`Ítem ${n + 1}: el precio no puede ser menor al costo (proveedor más alto e impresión: ${money(max.precio, moneda)}). Elige un factor.`);
+      setError(`Ítem ${n + 1}: el precio no puede ser menor al costo (${max.que}: ${money(max.precio, moneda)}). Sube el precio${max.conFactor ? " o elige un factor" : ""}.`);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -535,7 +535,7 @@ export function Editor({
                               <option value="">Manual</option>
                             </select>
                           )}
-                          <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" min={maxItem ? round(maxItem.precio + impItem, 4) : 0} step="0.0001"
+                          <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" min={art ? minimoVenta(art.precios, q, ctx, impItem).minimo : 0} step="0.0001"
                             value={it.precio_unitario}
                             style={bajo ? { borderColor: "var(--danger)" } : undefined}
                             onChange={(e) => setI(it.key, { precio_unitario: Number(e.target.value), factor: null })} />

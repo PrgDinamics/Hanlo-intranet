@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  ArrowLeftRight, BarChart3, BriefcaseBusiness, Building2, CreditCard, FileText, Layers, LayoutDashboard,
+  ArrowLeftRight, BarChart3, BookOpen, BriefcaseBusiness, Building2, CreditCard, FileText, Layers, LayoutDashboard,
   FileUp, History, Menu, Package, ShieldCheck, Truck, UserCog, Users, X,
 } from "lucide-react";
 import s from "./shell.module.css";
@@ -29,6 +29,12 @@ const NAV: { grupo: string; items: ItemNav[] }[] = [
       { href: "/articulos", label: "Artículos", icon: Package },
       { href: "/proveedores", label: "Proveedores", icon: Truck },
       { href: "/lineas", label: "Líneas de artículos", icon: Layers },
+    ],
+  },
+  {
+    grupo: "Web",
+    items: [
+      { href: "/revistas", label: "Revistas virtuales", icon: BookOpen, permiso: "revistas" },
     ],
   },
   {
