@@ -53,6 +53,10 @@ Correr en el SQL Editor solo las migraciones nuevas, en orden. La última es **`
 
 Si ya estaba instalado, correr también **`supabase/migrations/20261110000000_correcciones_revision.sql`** (correcciones de la revisión del 10/11/2026; se puede correr más de una vez).
 
+Y después **`supabase/migrations/20261111000000_impresion_y_opciones.sql`** (11/11/2026: columna de impresión del logo por colores y fin del descuento por ítem; se puede correr más de una vez).
+
+Y **`supabase/migrations/20261112000000_permiso_revistas.sql`** (12/11/2026: permiso "Revistas virtuales" para los roles).
+
 * Usuarios creados por fuera de la intranet nacen como vendedor **inactivo** (antes, con el registro abierto de Supabase, alguien podía crearse una cuenta de administrador).
 * Solo los usuarios activos leen datos.
 * Totales, número de cotización e IGV solo los calcula la base; el límite de venta usa el tipo de cambio oficial.
@@ -69,9 +73,9 @@ En **Configuración > Roles y permisos** el Administrador crea roles y marca qu�
 | **Vendedor** | Cotiza y ve solo lo suyo. |
 | **Coordinador** | Ve todas las cotizaciones y aprueba, mantiene catálogo y precios, sube Excel, tipo de cambio y formas de pago. Sin reportes. |
 
-Permisos disponibles: ver todas las cotizaciones, aprobar, clientes, artículos, importar Excel, tipo de cambio, formas de pago, empresas, reportes y registro de actividad. Crear clientes o artículos también se puede dar desde el agente comercial (vale cualquiera de los dos), y el límite de venta sigue siempre en el agente. Usuarios, roles y agentes son exclusivos del Administrador; un rol que no es Administrador tampoco puede cargar las hojas Usuarios y Agentes de la carga inicial.
+Permisos disponibles: ver todas las cotizaciones, aprobar, clientes, artículos, importar Excel, tipo de cambio, formas de pago, empresas, reportes, registro de actividad y revistas virtuales. Crear clientes o artículos también se puede dar desde el agente comercial (vale cualquiera de los dos), y el límite de venta sigue siempre en el agente. Usuarios, roles y agentes son exclusivos del Administrador; un rol que no es Administrador tampoco puede cargar las hojas Usuarios y Agentes de la carga inicial.
 
-Migración: `20261104000000_roles.sql` (los usuarios existentes quedan como Administrador o Vendedor según tenían).
+Migración: `20261104000000_roles.sql` (los usuarios existentes quedan como Administrador o Vendedor según tenían). El permiso de revistas llega con `20261112000000_permiso_revistas.sql`.
 
 ## Pruebas
 
@@ -147,6 +151,27 @@ Sin el token todo funciona igual y esos botones no aparecen.
 * Alta rápida de cliente sin salir de la cotización (con búsqueda RUC/DNI).
 * "Último a este cliente": muestra el precio con que se le cotizó cada artículo la última vez.
 * Precio más alto entre proveedores, validado en pantalla y en el servidor.
+
+## Revistas virtuales (hanloinnova.com/revistas/nombre)
+
+Menú **Web > Revistas virtuales** (Administrador y los roles con el permiso "Revistas virtuales"). Se sube el PDF de la campaña, se elige el nombre y queda en `hanloinnova.com/revistas/nombre`, para hojear en celular y computadora y compartir por WhatsApp (sale la portada como vista previa).
+
+* El PDF se convierte en el navegador a una imagen JPG por página (unos 250 KB cada una; un PDF de 15 MB queda en ~2.5 MB).
+* Todo se guarda en el cPanel, en `public_html/revistas/<nombre>/`. Ver la revista **no usa** Vercel ni Supabase: la sirve el hosting. La lista está en `public_html/revistas/index.json` (la web la puede leer para mostrar un listado de revistas en `hanloinnova.com/revistas/`).
+* Se puede ocultar (muestra "ya no está disponible"), subir una versión nueva al mismo enlace o eliminar.
+
+Configuración (una sola vez):
+
+1. cPanel > **Seguridad > Manage API Tokens** > Create. Nombre `intranet-revistas`. Copiar el token (solo se muestra una vez).
+2. Vercel > Settings > **Environment Variables**:
+   * `CPANEL_URL` = `https://hanloinnova.com:2083` (si da error de certificado, usar la dirección del servidor con la que se entra al cPanel, ej. `https://servidor.hosting.com:2083`)
+   * `CPANEL_USUARIO` = usuario del cPanel
+   * `CPANEL_TOKEN` = el token
+   * `REVISTAS_SITIO` = `https://hanloinnova.com`
+
+   Luego **Redeploy**.
+
+No hace falta tocar el `.htaccess` de la web: `hanloinnova.com/revistas/<nombre>` abre la carpeta directamente. La intranet no deja usar nombres que ya existan en `public_html/revistas`.
 
 ## Pendiente para siguientes fases
 

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Librería copiada (visor de PDF para las revistas): no es código del proyecto
+    "public/pdfjs/**",
   ]),
 ]);
 
