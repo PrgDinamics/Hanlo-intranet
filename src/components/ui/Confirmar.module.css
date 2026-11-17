@@ -1,0 +1,62 @@
+/* Ventana de confirmación: encima de cualquier otra ventana abierta */
+.fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.5);
+  animation: aparecer 0.12s ease-out;
+}
+.caja {
+  width: 100%;
+  max-width: 420px;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 4px 14px;
+  padding: 22px 22px 18px;
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  animation: entrar 0.16s ease-out;
+}
+.icono {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+}
+.iconoPeligro {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.icono svg { width: 20px; height: 20px; }
+.texto { min-width: 0; padding-top: 2px; }
+.titulo { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
+.mensaje { margin-top: 6px; font-size: 13.5px; line-height: 1.5; color: var(--text-2); white-space: pre-line; }
+.botones {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+/* Botón rojo lleno para acciones que borran */
+.botones :global(button):last-child[data-peligro="true"] {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  font-weight: 600;
+}
+.botones :global(button):last-child[data-peligro="true"]:hover { filter: brightness(0.92); }
+@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+@keyframes entrar { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
+@media (max-width: 480px) {
+  .botones { flex-direction: column-reverse; }
+  .botones :global(button) { width: 100%; justify-content: center; }
+}
