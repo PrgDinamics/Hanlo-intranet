@@ -6,8 +6,8 @@
 export const PERMISOS = [
   { clave: "cotizaciones_todas", grupo: "Cotizaciones", label: "Ver y editar las cotizaciones de todos", hint: "Sin este permiso solo ve las suyas y las de su agente" },
   { clave: "aprobar", grupo: "Cotizaciones", label: "Aprobar cotizaciones que superan el límite", hint: "También emite sin tope de límite" },
-  { clave: "clientes", grupo: "Maestros", label: "Crear y editar clientes", hint: "Además de lo que permita su agente comercial" },
-  { clave: "articulos", grupo: "Maestros", label: "Crear y editar artículos, precios, proveedores y líneas", hint: "Además de lo que permita su agente comercial" },
+  { clave: "clientes", grupo: "Maestros", label: "Crear y editar clientes" },
+  { clave: "articulos", grupo: "Maestros", label: "Crear y editar artículos, precios, proveedores y líneas" },
   { clave: "importar", grupo: "Maestros", label: "Subir Excel (listas de stock y carga inicial)" },
   { clave: "tipos_cambio", grupo: "Configuración", label: "Tipo de cambio" },
   { clave: "formas_pago", grupo: "Configuración", label: "Formas de pago" },
