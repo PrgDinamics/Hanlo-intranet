@@ -119,7 +119,7 @@ export function Usuarios({ usuarios, agentes, roles, rolVendedor, yo }: {
                 </label>
               </div>
               <p className={`${ui.span12} ${ui.hint}`}>
-                El rol define a qué partes entra (ver Roles y permisos). Crear clientes o artículos también puede venir de su agente comercial, y el límite de venta siempre viene del agente.
+                El rol define a qué partes entra (ver Roles y permisos). El agente comercial da la firma de sus cotizaciones y su límite de venta.
               </p>
             </div>
           </div>
