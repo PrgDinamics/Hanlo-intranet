@@ -247,11 +247,35 @@
   border-radius: 7px;
   padding: 8px 10px;
 }
+/* Proveedor, su precio y el color: en una línea; si no caben, el precio y el color bajan a la siguiente */
 .provRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 118px;
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+  align-items: stretch;
 }
+.provRow > :first-child { flex: 1 1 220px; min-width: 0; }
+.provRow > .costoBox { flex: 0 0 auto; }
+.provRow > .colorSelect { flex: 0 0 118px; width: 118px; }
+.costoBox {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  white-space: nowrap;
+  line-height: 1.15;
+}
+.costoBox small { font-size: 10.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: .04em; }
+.costoBox strong { font-size: 14px; color: var(--text); font-variant-numeric: tabular-nums; }
+.chipUsado {
+  opacity: .55;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+.chipUsado:hover { border-color: var(--border-strong); background: var(--surface); }
 .provRow > :only-child {
   grid-column: 1 / -1;
 }
@@ -367,3 +391,11 @@
   color: var(--text-3);
 }
 .impOn + .impInfo { color: var(--brand-ink); }
+
+/* Precio fijado por el factor: se ve como dato, no como campo para escribir */
+.precioFijo {
+  cursor: default;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.precioFijo:focus { box-shadow: none; }

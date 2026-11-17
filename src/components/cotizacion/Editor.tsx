@@ -236,6 +236,12 @@ export function Editor({
   const superaLimite = datos.limite !== null && totalSoles > datos.limite;
   const margenTotal = costoTotal > 0 ? ((subtotal - costoTotal) / costoTotal) * 100 : null;
 
+  /** El mismo artículo, del mismo proveedor y en el mismo color, en otra fila (debe sumarse en una sola) */
+  const mismoProducto = (a: ItemInput, b: ItemInput) =>
+    !!a.articulo_id && a.articulo_id === b.articulo_id && (a.proveedor_id ?? "") === (b.proveedor_id ?? "");
+  const repetidoEn = (it: ItemInput, idx: number) =>
+    it.color ? items.findIndex((o, j) => j !== idx && mismoProducto(o, it) && o.color === it.color) : -1;
+
   const bajoMaximo = (it: ItemInput) => {
     const art = artPorId.get(it.articulo_id ?? "");
     if (!art) return null;
@@ -255,6 +261,19 @@ export function Editor({
       : !(tcCab >= 1 && tcCab <= 10) ? "El tipo de cambio debe estar entre 1 y 10 (ej. 3.75)" : null;
     if (errorTc) {
       setError(errorTc);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    const sinFactor = items.findIndex((it) => !it.factor && !!maxDe(artPorId.get(it.articulo_id ?? ""), it.cantidad || 1));
+    if (sinFactor >= 0) {
+      setError(`Ítem ${sinFactor + 1}: elige un factor para calcular el precio.`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    const dup = items.findIndex((it, i) => repetidoEn(it, i) >= 0 && repetidoEn(it, i) < i);
+    if (dup >= 0) {
+      const otro = repetidoEn(items[dup], dup);
+      setError(`Ítem ${dup + 1}: ${items[dup].descripcion} en ${items[dup].color} ya está en el ítem ${otro + 1}. Suma la cantidad en ese ítem o elige otro color.`);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -361,7 +380,7 @@ export function Editor({
                   <option value="PEN">Soles</option>
                   <option value="USD">Dólares</option>
                 </select>
-                <input className={ui.input} type="number" step="0.0001" min="1" max="10" title="Tipo de cambio (venta), entre 1 y 10"
+                <input className={ui.input} type="number" onWheel={(e) => e.currentTarget.blur()} step="0.0001" min="1" max="10" title="Tipo de cambio (venta), entre 1 y 10"
                   value={cab.tipo_cambio ?? ""} onChange={(e) => setC("tipo_cambio", e.target.value ? Number(e.target.value) : null)} />
               </div>
             </div>
@@ -375,7 +394,7 @@ export function Editor({
             </label>
             <label className={`${ui.field} ${ui.span3}`}>
               <span className={ui.label}>Validez (días)</span>
-              <input className={ui.input} type="number" min="0" value={cab.validez_dias}
+              <input className={ui.input} type="number" onWheel={(e) => e.currentTarget.blur()} min="0" value={cab.validez_dias}
                 onChange={(e) => setC("validez_dias", Number(e.target.value))} />
             </label>
             <label className={`${ui.field} ${ui.span3}`}>
@@ -403,7 +422,7 @@ export function Editor({
             </Empty>
           ) : (
             <div className={ui.tableWrap}>
-              <table className={`${ui.table} ${s.items}`} style={{ tableLayout: "fixed", minWidth: 760 }}>
+              <table className={`${ui.table} ${s.items}`} style={{ tableLayout: "fixed", minWidth: 1000 }}>
                 <thead>
                   <tr>
                     <th style={{ width: 28 }}>#</th>
@@ -438,9 +457,19 @@ export function Editor({
                             {},
                           ),
                         );
+                    // Colores que ya usa este mismo producto en otras filas, y lo que esas filas ya toman del stock
+                    const otrasFilas = items.map((o, j) => ({ o, j })).filter(({ o, j }) => j !== n && mismoProducto(o, it));
+                    const colorEnFila = new Map(otrasFilas.filter(({ o }) => o.color).map(({ o, j }) => [o.color, j + 1]));
+                    const yaTomado = otrasFilas
+                      .filter(({ o }) => (it.color ? o.color === it.color : true))
+                      .reduce((a, { o }) => a + (Number(o.cantidad) || 0), 0);
+                    // El aviso sale en la fila repetida (la de abajo), no en la primera
+                    const repetido = it.color ? otrasFilas.find(({ o, j }) => j < n && o.color === it.color)?.j : undefined;
                     const stockColor = it.color ? colores.find((c) => c.color === it.color)?.stock : undefined;
-                    const stockDisp = it.color ? stockColor : prov?.stock ?? undefined;
+                    const stockTotal = it.color ? stockColor : prov?.stock ?? undefined;
+                    const stockDisp = stockTotal != null ? Math.max(0, Number(stockTotal) - yaTomado) : undefined;
                     const sinStock = stockDisp != null && q > Number(stockDisp);
+                    const costoProv = prov ? precioProv(prov) : maxItem ? precioProv(maxItem.proveedor) : null;
                     return (
                       <tr key={it.key}>
                         <td className={ui.muted}>{n + 1}</td>
@@ -475,6 +504,12 @@ export function Editor({
                             ) : (
                               <span className={s.meta}>{art ? "Sin proveedores registrados" : "Ítem libre"}</span>
                             )}
+                            {art && art.precios.length > 0 && costoProv !== null && (
+                              <div className={s.costoBox} title="Precio unitario del proveedor para esta cantidad (sin IGV)">
+                                <small>P. proveedor</small>
+                                <strong>{money(costoProv, moneda)}</strong>
+                              </div>
+                            )}
                             {(colores.length > 0 || !art) && (
                               <>
                                 <input className={`${ui.input} ${s.cellInput} ${s.colorSelect}`} list={`colores-${it.key}`}
@@ -490,18 +525,28 @@ export function Editor({
                           </div>
                           {colores.length > 0 && !it.color && (
                             <div className={s.chipsColor}>
-                              {colores.filter((c) => Number(c.stock) > 0).slice(0, 8).map((c) => (
-                                <button key={c.color} type="button" className={s.chipColor} onClick={() => setI(it.key, { color: c.color })}
-                                  title={`Stock ${num(c.stock, 0)}`}>
-                                  {c.color} <small>{num(c.stock, 0)}</small>
-                                </button>
-                              ))}
+                              {colores.filter((c) => Number(c.stock) > 0).slice(0, 8).map((c) => {
+                                const fila = colorEnFila.get(c.color);
+                                return (
+                                  <button key={c.color} type="button" className={`${s.chipColor} ${fila ? s.chipUsado : ""}`}
+                                    disabled={!!fila} onClick={() => setI(it.key, { color: c.color })}
+                                    title={fila ? `Ya está en el ítem ${fila}: suma la cantidad allá` : `Stock ${num(c.stock, 0)}`}>
+                                    {c.color} <small>{fila ? `ítem ${fila}` : num(c.stock, 0)}</small>
+                                  </button>
+                                );
+                              })}
                             </div>
                           )}
-                          {stockDisp != null && (
+                          {repetido !== undefined && (
+                            <div className={s.stockMal}>
+                              {it.color} ya está en el ítem {repetido + 1}: suma la cantidad allá o elige otro color.
+                            </div>
+                          )}
+                          {stockDisp != null && repetido === undefined && (
                             <div className={sinStock ? s.stockMal : s.stockOk}>
                               {sinStock ? "Stock insuficiente: " : "Stock: "}{num(Number(stockDisp), 0)}
                               {it.color ? ` en ${it.color}` : prov ? ` en ${prov.proveedor}` : ""}
+                              {yaTomado > 0 && <span className={s.meta}> (ya se usan {num(yaTomado, 0)} en otros ítems)</span>}
                             </div>
                           )}
                           {it.articulo_id && ultimos[it.articulo_id] && (
@@ -523,40 +568,50 @@ export function Editor({
                             value={it.unidad} onChange={(e) => setI(it.key, { unidad: e.target.value })} />
                         </td>
                         <td>
-                          <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" min="0" step="0.01" value={it.cantidad}
+                          <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" onWheel={(e) => e.currentTarget.blur()} min="0" step="0.01" value={it.cantidad}
                             onChange={(e) => cambiarCantidad(it, Number(e.target.value))} />
                         </td>
                         <td>
                           {maxItem && (
                             <select className={`${ui.input} ${s.cellInput} ${s.factorSel}`} value={it.factor ?? ""}
                               title="Factor: precio de venta = costo ÷ factor"
-                              onChange={(e) => cambiarFactor(it, e.target.value ? Number(e.target.value) : null)}>
-                              {opcionesFactor.map((f) => <option key={f} value={f}>÷ {f.toFixed(2)}</option>)}
-                              <option value="">Manual</option>
+                              style={!it.factor ? { borderColor: "var(--danger)" } : undefined}
+                              onChange={(e) => e.target.value && cambiarFactor(it, Number(e.target.value))}>
+                              {!it.factor && <option value="" disabled>Elige un factor</option>}
+                              {[...new Set([...opcionesFactor, ...(it.factor ? [it.factor] : [])])].sort((x, y) => x - y)
+                                .map((f) => <option key={f} value={f}>÷ {f.toFixed(2)}</option>)}
                             </select>
                           )}
-                          <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" min={art ? minimoVenta(art.precios, q, ctx, impItem).minimo : 0} step="0.0001"
-                            value={it.precio_unitario}
-                            style={bajo ? { borderColor: "var(--danger)" } : undefined}
-                            onChange={(e) => setI(it.key, { precio_unitario: Number(e.target.value), factor: null })} />
-                          {bajo ? (
-                            <button className={s.minFix} title="Usar el costo más alto"
+                          {maxItem ? (
+                            // Artículo con precios de proveedor: el precio lo fija el factor, no se escribe a mano
+                            <input className={`${ui.input} ${s.cellInput} ${s.right} ${s.precioFijo}`} type="text" readOnly tabIndex={-1}
+                              value={it.factor ? num(it.precio_unitario, 4) : "—"} title="El precio sale del costo del proveedor y el factor" />
+                          ) : (
+                            <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" onWheel={(e) => e.currentTarget.blur()} min={art ? minimoVenta(art.precios, q, ctx, impItem).minimo : 0} step="0.0001"
+                              value={it.precio_unitario}
+                              style={bajo ? { borderColor: "var(--danger)" } : undefined}
+                              onChange={(e) => setI(it.key, { precio_unitario: Number(e.target.value) })} />
+                          )}
+                          {maxItem ? (
+                            <div className={s.maxTag}>
+                              {it.factor ? <>
+                                Costo {num(maxItem.precio, 2)}{impItem > 0 ? ` + logo ${num(impItem, 2)}` : ""} ÷ {it.factor.toFixed(2)}
+                                {recargo > 0 ? ` +${num(recargo, 0)}%` : ""}
+                              </> : <span style={{ color: "var(--danger)" }}>Elige un factor para calcular el precio</span>}
+                              <br />{TRAMO_LABEL[maxItem.tramo]}{art && art.precios.length > 1 ? " · más alto" : ""}
+                            </div>
+                          ) : bajo ? (
+                            <button className={s.minFix} title="Usar el costo mínimo"
                               onClick={() => setI(it.key, { precio_unitario: bajo.precio })}>
                               Mín. {bajo.precio}
                             </button>
-                          ) : maxItem ? (
-                            <div className={s.maxTag}>
-                              Costo {num(maxItem.precio, 2)}{impItem > 0 ? ` + logo ${num(impItem, 2)}` : ""}{it.factor ? ` ÷ ${it.factor.toFixed(2)}` : ""}
-                              {it.factor && recargo > 0 ? ` +${num(recargo, 0)}%` : ""}
-                              <br />{TRAMO_LABEL[maxItem.tramo]}{art && art.precios.length > 1 ? " · más alto" : ""}
-                            </div>
                           ) : null}
                         </td>
                         <td>
                           <div className={`${s.imp} ${it.impresion_colores ? s.impOn : ""}`}>
                             <button type="button" className={s.impBtn} aria-label="Quitar un color"
                               disabled={!it.impresion_colores} onClick={() => cambiarColores(it, it.impresion_colores - 1)}>−</button>
-                            <input className={s.impNum} type="number" min="0" max={MAX_COLORES} step="1" inputMode="numeric"
+                            <input className={s.impNum} type="number" onWheel={(e) => e.currentTarget.blur()} min="0" max={MAX_COLORES} step="1" inputMode="numeric"
                               value={it.impresion_colores} aria-label="Colores del logo por producto"
                               onChange={(e) => cambiarColores(it, Number(e.target.value))} />
                             <button type="button" className={s.impBtn} aria-label="Agregar un color"

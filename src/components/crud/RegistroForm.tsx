@@ -9,6 +9,7 @@ import { MODULOS, type Campo, type Opcion } from "@/lib/modulos";
 import { FotoZoom } from "@/components/ui/FotoZoom";
 import ui from "@/components/ui/ui.module.css";
 import s from "./crud.module.css";
+import { useConfirmar } from "@/components/ui/Confirmar";
 
 const SPAN: Record<number, string> = { 3: ui.span3, 4: ui.span4, 6: ui.span6, 8: ui.span8, 12: ui.span12 };
 
@@ -93,8 +94,14 @@ export function RegistroForm({
     }
   };
 
-  const eliminar = () => {
-    if (!id || !confirm(`¿Eliminar este ${mod.singular}? Esta acción no se puede deshacer.`)) return;
+  const confirmar = useConfirmar();
+  const eliminar = async () => {
+    if (!id) return;
+    if (!(await confirmar({
+      titulo: `Eliminar ${mod.singular}`,
+      mensaje: `¿Seguro que quieres eliminar este ${mod.singular}? Esta acción no se puede deshacer.`,
+      aceptar: "Eliminar", peligro: true,
+    }))) return;
     start(async () => {
       const r = await eliminarRegistro(modKey, id);
       if (!r.ok) return setError(r.error);

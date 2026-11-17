@@ -11,6 +11,7 @@ import { guardarPrecio, eliminarPrecio, type PrecioInput } from "@/lib/acciones-
 import { fecha, money, num } from "@/lib/format";
 import type { Opcion } from "@/lib/modulos";
 import ui from "@/components/ui/ui.module.css";
+import { useConfirmar } from "@/components/ui/Confirmar";
 
 export type PrecioRow = {
   id: string;
@@ -71,11 +72,16 @@ export function PreciosProveedor({
     });
   };
 
-  const borrar = (id: string) => {
-    if (!confirm("¿Quitar este precio?")) return;
+  const confirmar = useConfirmar();
+  const borrar = async (id: string) => {
+    if (!(await confirmar({
+      titulo: "Quitar este precio",
+      mensaje: "Se quitará el precio y el stock de este proveedor para el artículo.",
+      aceptar: "Quitar", peligro: true,
+    }))) return;
     start(async () => {
       const r = await eliminarPrecio(id);
-      if (!r.ok) alert(r.error);
+      if (!r.ok) await confirmar({ titulo: "No se pudo quitar el precio", mensaje: r.error, soloAceptar: true });
       router.refresh();
     });
   };
