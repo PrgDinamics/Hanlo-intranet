@@ -11,6 +11,7 @@ import { cambiarEstado, duplicarCotizacion, nuevaVersion, type Faltante } from "
 import { AvisoStock } from "@/components/cotizacion/AvisoStock";
 import { EDITABLE, TRANSICIONES, VERSIONABLE, type EstadoCotizacion } from "@/lib/estados";
 import ui from "@/components/ui/ui.module.css";
+import { useConfirmar } from "@/components/ui/Confirmar";
 
 const BOTON: Partial<Record<EstadoCotizacion, { label: string; icon: React.ElementType; clase?: string }>> = {
   emitida: { label: "Emitir", icon: Send, clase: ui.primary },
@@ -33,6 +34,7 @@ export function Acciones({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const confirmar = useConfirmar();
   const [anular, setAnular] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -73,8 +75,11 @@ export function Acciones({
         </a>
         {VERSIONABLE.includes(estado) && (
           <button className={ui.btn} disabled={pending} title="Crea una copia editable y marca esta como reemplazada"
-            onClick={() => confirm("Se creará una nueva versión editable y esta quedará como reemplazada. ¿Continuar?") &&
-              correr(() => nuevaVersion(id), true)}>
+            onClick={async () => (await confirmar({
+              titulo: "Crear nueva versión",
+              mensaje: "Se creará una copia editable con el mismo número y la versión siguiente. Esta cotización quedará como Reemplazada.",
+              aceptar: "Crear versión",
+            })) && correr(() => nuevaVersion(id), true)}>
             <GitBranch /> Nueva versión
           </button>
         )}

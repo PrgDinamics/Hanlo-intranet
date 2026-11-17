@@ -9,6 +9,7 @@ import { eliminarRol, guardarRol, type RolInput } from "@/lib/acciones-roles";
 import { PERMISOS } from "@/lib/permisos";
 import ui from "@/components/ui/ui.module.css";
 import s from "./roles.module.css";
+import { useConfirmar } from "@/components/ui/Confirmar";
 
 export type RolFila = { id: string; nombre: string; descripcion: string | null; sistema: boolean; permisos: string[]; usuarios: number };
 
@@ -36,13 +37,21 @@ export function Roles({ roles }: { roles: RolFila[] }) {
     setForm(null);
     router.refresh();
   });
-  const eliminar = () => form?.id && start(async () => {
-    if (!confirm(`¿Eliminar el rol "${form.nombre}"?`)) return;
-    const r = await eliminarRol(form.id!);
-    if (!r.ok) return setError(r.error);
-    setForm(null);
-    router.refresh();
-  });
+  const confirmar = useConfirmar();
+  const eliminar = async () => {
+    if (!form?.id) return;
+    if (!(await confirmar({
+      titulo: "Eliminar rol",
+      mensaje: `¿Seguro que quieres eliminar el rol "${form.nombre}"? Esta acción no se puede deshacer.`,
+      aceptar: "Eliminar", peligro: true,
+    }))) return;
+    start(async () => {
+      const r = await eliminarRol(form.id!);
+      if (!r.ok) return setError(r.error);
+      setForm(null);
+      router.refresh();
+    });
+  };
 
   return (
     <div className={ui.card}>
