@@ -9,7 +9,6 @@ import { fecha, fechaHora, money, num, pu } from "@/lib/format";
 import { Acciones } from "./Acciones";
 import ui from "@/components/ui/ui.module.css";
 import s from "./detalle.module.css";
-import { textoImpresion } from "@/lib/impresion";
 
 export default async function CotizacionPage({ params }: PageProps<"/cotizaciones/[id]">) {
   const { id } = await params;
@@ -95,7 +94,6 @@ export default async function CotizacionPage({ params }: PageProps<"/cotizacione
                       <td>
                         <div className={ui.strong}>{i.descripcion}</div>
                         {i.color && <div className={s.det}>Color: {i.color}</div>}
-                        {Number(i.impresion_colores) > 0 && <div className={s.det}>{textoImpresion(i.cantidad, i.impresion_colores)}</div>}
                   {i.detalle && <div className={s.det}>{i.detalle}</div>}
                       </td>
                       <td className={ui.muted}>{i.proveedor?.razon_social}</td>
