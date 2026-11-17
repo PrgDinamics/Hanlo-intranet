@@ -120,5 +120,11 @@ export function ventaConFactor(costo: number, factor: number, recargoPct: number
   let v = costo / factor;
   v = v * (1 + (Number(recargoPct) || 0) / 100);
   if (ctx.incluyeIgv) v = v * (1 + ctx.igvPct / 100);
-  return Math.round(v * 10000) / 10000;
+  // Precios de venta con 2 decimales, redondeando hacia arriba al céntimo: así nunca baja del costo
+  return aCentimoArriba(v);
+}
+
+/** Redondea hacia arriba al céntimo: 3.0396 → 3.04 (el 1e-9 evita que 3.04000000001 pase a 3.05) */
+export function aCentimoArriba(v: number) {
+  return Math.ceil(v * 100 - 1e-9) / 100;
 }

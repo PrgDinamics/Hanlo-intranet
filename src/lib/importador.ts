@@ -28,11 +28,30 @@ const EJEMPLO: Record<string, [string, string]> = {
 
 export const ORDEN_HOJAS = ["Empresa", "Agentes", "Usuarios", "Formas de pago", "Líneas", "Proveedores", "Artículos", "Precios", "Clientes"];
 
+/** Texto plano de cualquier valor de celda (texto con formato, fórmula, hipervínculo, error) */
+function plano(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    // Texto con varios formatos en la celda (negrita, colores): se juntan sus partes
+    if (Array.isArray(o.richText)) return (o.richText as { text?: string }[]).map((t) => t.text ?? "").join("");
+    if ("result" in o) return plano(o.result);
+    if ("text" in o) return plano(o.text);
+    if ("error" in o) return "";
+  }
+  return "";
+}
+
 export function texto(cell: ExcelJS.Cell): string {
   const v = cell.value;
   if (v === null || v === undefined) return "";
-  if (typeof v === "object" && "result" in v) return String(v.result ?? "").trim();
-  return (cell.text ?? "").toString().trim();
+  if (typeof v === "object" && !(v instanceof Date)) return plano(v).trim();
+  let t = "";
+  try { t = (cell.text ?? "").toString(); } catch { t = plano(v); }
+  // Por si la librería devuelve el objeto sin convertir
+  return (t.includes("[object Object]") ? plano(v) : t).trim();
 }
 
 export type Foto = { buffer: Buffer; ext: string };

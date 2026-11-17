@@ -27,13 +27,12 @@ export function impresionPorUnidad(colores: number | null | undefined, costoImpr
 }
 
 /**
- * Texto para la cotización. Neutro porque el número puede ser colores o logos
- * ("logo a un color" = 1, "3 logos a un color" = 3, "logo y frase" = 2):
- * "Incluye 1 impresión de logo por unidad (2,000 impresiones)"
+ * Texto para la cotización (lo ve el cliente). Solo dice cuántas impresiones lleva cada unidad:
+ * ni el total de impresiones ni el costo por impresión (es costo interno y ya va dentro del precio).
+ * "logo a un color" = 1, "logo y frase" = 2, "3 logos a un color" = 3.
  */
-export function textoImpresion(cantidad: number | null | undefined, colores: number | null | undefined) {
+export function textoImpresion(_cantidad: number | null | undefined, colores: number | null | undefined) {
   const c = Number(colores) || 0;
   if (!c) return "";
-  const total = totalImpresiones(cantidad, c).toLocaleString("es-PE", { maximumFractionDigits: 0 });
-  return `Incluye ${c} ${c === 1 ? "impresión" : "impresiones"} de logo por unidad (${total} impresiones)`;
+  return c === 1 ? "Incluye 1 impresión de logo por unidad" : `Incluye ${c} impresiones de logo por unidad`;
 }

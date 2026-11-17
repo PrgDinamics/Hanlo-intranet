@@ -584,9 +584,9 @@ async function enLotes<T, R>(items: T[], tam: number, fn: (lote: T[]) => Promise
 
 export async function articulosExistentes(supabase: SupabaseClient, codigos: string[]) {
   const filas = await enLotes(codigos, 200, async (lote) => {
-    const { data, error } = await supabase.from("articulos").select("id, codigo, linea_id, detalle, empaque, foto_url").in("codigo", lote);
+    const { data, error } = await supabase.from("articulos").select("id, codigo, descripcion, linea_id, detalle, empaque, foto_url").in("codigo", lote);
     if (error) throw new Error("Artículos: " + error.message);
-    return (data ?? []) as { id: string; codigo: string; linea_id: string | null; detalle: string | null; empaque: string | null; foto_url: string | null }[];
+    return (data ?? []) as { id: string; codigo: string; descripcion?: string | null; linea_id: string | null; detalle: string | null; empaque: string | null; foto_url: string | null }[];
   });
   return new Map(filas.map((a) => [a.codigo.toUpperCase(), a]));
 }
@@ -636,9 +636,12 @@ export async function importarLista(
     const a = existentes.get(p.codigo);
     if (!a || nuevos.includes(p)) continue;
     const cambios: Record<string, unknown> = {};
+    // Textos que quedaron mal de una importación anterior ("[object Object]") se reemplazan
+    const roto = (t: string | null | undefined) => !t || t.includes("[object Object]");
     if (!a.linea_id) cambios.linea_id = lineas.get(p.linea.toUpperCase()) ?? null;
-    if (!a.detalle && p.detalle) cambios.detalle = p.detalle;
-    if (!a.empaque && p.empaque) cambios.empaque = p.empaque;
+    if (a.descripcion !== undefined && roto(a.descripcion) && p.descripcion && !roto(p.descripcion)) cambios.descripcion = p.descripcion;
+    if (roto(a.detalle) && p.detalle && !roto(p.detalle)) cambios.detalle = p.detalle;
+    if (roto(a.empaque) && p.empaque && !roto(p.empaque)) cambios.empaque = p.empaque;
     if (Object.keys(cambios).length) {
       const { error } = await supabase.from("articulos").update(cambios).eq("id", a.id);
       if (error) throw new Error("Artículos: " + error.message);

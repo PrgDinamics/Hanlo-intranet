@@ -83,7 +83,9 @@ export async function guardarCotizacion(
   const tcError = validarTipoCambio(cab.moneda, cab.tipo_cambio);
   if (tcError) return { ok: false, error: tcError };
   // Solo se descartan las filas totalmente vacías (como nace una fila nueva en el editor)
-  const limpios = items.filter((i) => !filaVacia(i));
+  // Precios con 2 decimales (los del factor ya vienen así; esto cubre los escritos a mano)
+  const limpios = items.filter((i) => !filaVacia(i))
+    .map((i) => ({ ...i, precio_unitario: Math.round(Number(i.precio_unitario) * 100) / 100 }));
   if (!limpios.length) return { ok: false, error: "Agrega al menos un ítem" };
   for (const [n, i] of limpios.entries()) {
     if (!i.descripcion.trim()) return { ok: false, error: `Ítem ${n + 1}: falta la descripción` };
@@ -127,6 +129,8 @@ export async function guardarCotizacion(
       // La impresión del logo también es costo: el mínimo es proveedor más alto + impresión por unidad
       const imp = impresionPorUnidad(i.impresion_colores, Number(emp?.costo_impresion ?? 0), cab.moneda, tc);
       const { minimo, max } = minimoVenta((precios ?? []).filter((p) => p.articulo_id === i.articulo_id), i.cantidad, ctx, imp);
+      // Con precios de proveedor el precio sale del factor: no se acepta un precio sin factor
+      if (max && !i.factor) return { ok: false, error: `Ítem ${n + 1}: elige un factor para calcular el precio` };
       if (minimo > 0 && i.precio_unitario < minimo - 0.00005) {
         const que = max && imp ? "proveedor más alto e impresión" : max ? "proveedor más alto" : "impresión del logo";
         return {

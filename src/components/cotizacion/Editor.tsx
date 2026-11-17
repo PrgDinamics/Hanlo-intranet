@@ -15,11 +15,11 @@ import { buscarCatalogo } from "@/lib/acciones-catalogo";
 import { RegistroForm } from "@/components/crud/RegistroForm";
 import { convertir, fecha, money, num, round, SIMBOLO, type Moneda } from "@/lib/format";
 import {
-  aCotizacion, costoMaximo, FACTORES_DEFECTO, minimoVenta, parseFactores, precioPorCantidad, TRAMO_LABEL, ventaConFactor,
+  aCentimoArriba, aCotizacion, costoMaximo, FACTORES_DEFECTO, minimoVenta, parseFactores, precioPorCantidad, TRAMO_LABEL, ventaConFactor,
   type ContextoPrecio,
 } from "@/lib/precios";
 import { UNIDADES } from "@/lib/modulos";
-import { COSTO_IMPRESION_DEFECTO, MAX_COLORES, impresionPorUnidad, totalImpresiones } from "@/lib/impresion";
+import { COSTO_IMPRESION_DEFECTO, MAX_COLORES, impresionPorUnidad } from "@/lib/impresion";
 import type { ArticuloCat, DatosEditor, PrecioCat } from "./datos";
 import { FotoZoom } from "@/components/ui/FotoZoom";
 import ui from "@/components/ui/ui.module.css";
@@ -173,7 +173,7 @@ export function Editor({
     // Manual: se respeta el precio escrito, nunca bajo el mínimo (misma fórmula que el servidor).
     const base = max ? round(max.precio + imp, 4) : 0;
     const { minimo } = minimoVenta(art.precios, n.cantidad || 1, c, imp);
-    const precio = n.factor && max ? ventaDe(base, n.factor, formaId, c) : Math.max(n.precio_unitario, minimo);
+    const precio = n.factor && max ? ventaDe(base, n.factor, formaId, c) : Math.max(n.precio_unitario, aCentimoArriba(minimo));
     // Sin proveedor elegido: se mantiene el costo escrito y solo se ajusta la impresión
     const costo = prov ? round(costoDe(prov, n.cantidad || 1, c) + imp, 4) : round(Math.max(0, n.precio_costo - impDe(it, c) + imp), 4);
     return { ...n, precio_unitario: precio, precio_costo: costo };
@@ -248,7 +248,7 @@ export function Editor({
     // Misma fórmula que el servidor y la base: proveedor más alto + impresión (+ IGV si los precios lo incluyen)
     const { minimo, max, impresion } = minimoVenta(art.precios, it.cantidad || 1, ctx, impDe(it));
     const que = max && impresion ? "proveedor más alto e impresión" : max ? "proveedor más alto" : "impresión del logo";
-    return minimo > 0 && it.precio_unitario < minimo - 0.00005 ? { precio: minimo, conFactor: !!max, que } : null;
+    return minimo > 0 && it.precio_unitario < minimo - 0.00005 ? { precio: aCentimoArriba(minimo), conFactor: !!max, que } : null;
   };
 
   const guardar = (emitir: boolean) => {
@@ -585,9 +585,9 @@ export function Editor({
                           {maxItem ? (
                             // Artículo con precios de proveedor: el precio lo fija el factor, no se escribe a mano
                             <input className={`${ui.input} ${s.cellInput} ${s.right} ${s.precioFijo}`} type="text" readOnly tabIndex={-1}
-                              value={it.factor ? num(it.precio_unitario, 4) : "—"} title="El precio sale del costo del proveedor y el factor" />
+                              value={it.factor ? num(it.precio_unitario, 2) : "—"} title="El precio sale del costo del proveedor y el factor" />
                           ) : (
-                            <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" onWheel={(e) => e.currentTarget.blur()} min={art ? minimoVenta(art.precios, q, ctx, impItem).minimo : 0} step="0.0001"
+                            <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" onWheel={(e) => e.currentTarget.blur()} min={art ? aCentimoArriba(minimoVenta(art.precios, q, ctx, impItem).minimo) : 0} step="0.01"
                               value={it.precio_unitario}
                               style={bajo ? { borderColor: "var(--danger)" } : undefined}
                               onChange={(e) => setI(it.key, { precio_unitario: Number(e.target.value) })} />
@@ -618,12 +618,9 @@ export function Editor({
                               disabled={it.impresion_colores >= MAX_COLORES} onClick={() => cambiarColores(it, it.impresion_colores + 1)}>+</button>
                           </div>
                           <div className={s.impInfo}>
-                            {it.impresion_colores > 0 ? (
-                              <>
-                                <strong>{num(totalImpresiones(it.cantidad, it.impresion_colores), 0)}</strong> impresiones
-                                <br />+{money(impItem, moneda)} c/u
-                              </>
-                            ) : "Colores del logo"}
+                            {/* Cada impresión suma el costo de la empresa (S/ 0.50) a cada unidad, antes del factor */}
+                            +{money(costoImpresion, "PEN")} por impresión
+                            {it.impresion_colores > 1 && <><br /><strong>+{money(impItem, moneda)}</strong> por unidad</>}
                           </div>
                         </td>
                         <td className={`${ui.num} ${ui.strong}`}>

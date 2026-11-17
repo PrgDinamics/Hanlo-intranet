@@ -3,7 +3,7 @@
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AlertCircle, Pencil, Plus, Star, Tags, Trash2 } from "lucide-react";
+import { AlertCircle, ChevronLeft, ChevronRight, Pencil, Plus, Search, Star, Tags, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Empty } from "@/components/ui/Empty";
 import { Badge } from "@/components/ui/Badge";
@@ -44,6 +44,22 @@ export function PreciosProveedor({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const otro = modo === "articulo" ? "Proveedor" : "Artículo";
+
+  // Búsqueda y páginas: un proveedor puede tener cientos de artículos
+  const POR_PAGINA = 20;
+  const [buscar, setBuscar] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const sinTildes = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const palabras = sinTildes(buscar).split(/\s+/).filter(Boolean);
+  const filtradas = palabras.length
+    ? rows.filter((r) => {
+        const t = sinTildes(`${r.codigo ?? ""} ${r.nombre} ${(r.colores ?? []).map((c) => c.color).join(" ")}`);
+        return palabras.every((w) => t.includes(w));
+      })
+    : rows;
+  const paginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
+  const pag = Math.min(pagina, paginas);
+  const visibles = filtradas.slice((pag - 1) * POR_PAGINA, pag * POR_PAGINA);
 
   const nuevo = () => {
     setError(null);
@@ -104,6 +120,16 @@ export function PreciosProveedor({
             : "Aún no se registran artículos para este proveedor"}
         </Empty>
       ) : (
+        <>
+        {rows.length > POR_PAGINA && (
+          <div className={ui.cardBody} style={{ paddingBottom: 0 }}>
+            <label className={ui.row} style={{ position: "relative" }}>
+              <Search size={15} style={{ position: "absolute", left: 11, color: "var(--text-3)" }} />
+              <input className={ui.input} style={{ paddingLeft: 34 }} value={buscar} placeholder={`Buscar ${otro.toLowerCase()} por código, nombre o color...`}
+                onChange={(e) => { setBuscar(e.target.value); setPagina(1); }} />
+            </label>
+          </div>
+        )}
         <div className={ui.tableWrap}>
           <table className={ui.table}>
             <thead>
@@ -117,7 +143,10 @@ export function PreciosProveedor({
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
+              {visibles.length === 0 && (
+                <tr><td colSpan={6} className={ui.muted} style={{ textAlign: "center", padding: 24 }}>Ningún resultado para &quot;{buscar}&quot;</td></tr>
+              )}
+              {visibles.map((r) => {
                 const m = margen(Number(r.precio_compra), Number(r.precio_venta));
                 const href = modo === "articulo" ? `/proveedores/${r.proveedor_id}` : `/articulos/${r.articulo_id}`;
                 return (
@@ -181,6 +210,23 @@ export function PreciosProveedor({
             </tbody>
           </table>
         </div>
+        {filtradas.length > POR_PAGINA && (
+          <div className={ui.pager}>
+            <span>
+              {num((pag - 1) * POR_PAGINA + 1, 0)} a {num(Math.min(pag * POR_PAGINA, filtradas.length), 0)} de {num(filtradas.length, 0)}
+              {palabras.length ? ` (de ${num(rows.length, 0)})` : ""}
+            </span>
+            <div className={ui.row}>
+              <button className={`${ui.btn} ${ui.sm}`} disabled={pag <= 1} onClick={() => setPagina(pag - 1)}><ChevronLeft /> Anterior</button>
+              <span>Página {pag} de {num(paginas, 0)}</span>
+              <button className={`${ui.btn} ${ui.sm}`} disabled={pag >= paginas} onClick={() => setPagina(pag + 1)}>Siguiente <ChevronRight /></button>
+            </div>
+          </div>
+        )}
+        {filtradas.length <= POR_PAGINA && rows.length > POR_PAGINA && (
+          <div className={ui.pager}><span>{num(filtradas.length, 0)} de {num(rows.length, 0)}</span></div>
+        )}
+        </>
       )}
 
       <Modal
