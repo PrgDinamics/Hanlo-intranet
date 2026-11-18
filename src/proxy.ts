@@ -1,3 +1,4 @@
+import "@/lib/supabase/silencio";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
@@ -22,6 +23,13 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const logueado = !!data?.claims;
+  // Sesión vieja que Supabase ya no reconoce (cerró sesión en otro lado, cambió la clave, etc.):
+  // se borran sus cookies para que no se vuelva a intentar en cada página
+  const viejas = logueado ? [] : request.cookies.getAll().filter((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name)).map((c) => c.name);
+  const limpiar = <T extends NextResponse>(res: T) => {
+    for (const n of viejas) res.cookies.delete(n);
+    return res;
+  };
   const { pathname } = request.nextUrl;
   const esPublica = PUBLICAS.some((p) => pathname.startsWith(p));
 
@@ -32,7 +40,7 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";
-    return NextResponse.redirect(url);
+    return limpiar(NextResponse.redirect(url));
   }
   if (logueado && pathname === "/login") {
     const url = request.nextUrl.clone();
@@ -40,7 +48,7 @@ export async function proxy(request: NextRequest) {
     url.search = "";
     return NextResponse.redirect(url);
   }
-  return response;
+  return limpiar(response);
 }
 
 export const config = {

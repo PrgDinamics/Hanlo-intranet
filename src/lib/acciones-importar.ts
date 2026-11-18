@@ -1,5 +1,8 @@
 "use server";
 
+import { publicarCatalogo } from "@/lib/catalogo-web";
+import { publicarCatalogoDespues } from "@/lib/catalogo-web-despues";
+import { cpanelConfigurado } from "@/lib/cpanel";
 import { revalidatePath } from "next/cache";
 import { requirePermiso } from "@/lib/sesion";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -67,6 +70,7 @@ export async function importarPlantilla(ruta: string): Promise<ResultadoImport> 
     await supabase.rpc("registrar_importacion", { p_registro: "Carga inicial desde Excel", p_resumen: r.log });
     await supabase.storage.from("importaciones").remove([ruta]);
     revalidatePath("/", "layout");
+    publicarCatalogoDespues();
     return { ok: true, log: r.log, omitidas: errores.length, credenciales: r.credenciales };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
@@ -160,6 +164,11 @@ export async function importarListaProveedor(
     await supabase.rpc("registrar_importacion", { p_registro: `Lista de stock · ${prov?.razon_social ?? "proveedor"}`, p_resumen: r.log });
     await supabase.storage.from("importaciones").remove([ruta]);
     revalidatePath("/", "layout");
+    // La web se actualiza con los artículos nuevos; si el cPanel falla, la importación igual queda hecha
+    if (cpanelConfigurado()) {
+      const w = await publicarCatalogo();
+      r.log.push(w.ok ? `Catálogo de la web actualizado (${w.info.articulos} artículos)` : `La web no se actualizó: ${w.error}`);
+    }
     return { ok: true, log: r.log };
   } catch (e) {
     return { ok: false, error: (e as Error).message };

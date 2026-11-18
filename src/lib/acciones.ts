@@ -1,5 +1,6 @@
 "use server";
 
+import { publicarCatalogoDespues } from "@/lib/catalogo-web-despues";
 import { revalidatePath } from "next/cache";
 import { getSesion } from "@/lib/sesion";
 import { parseFactores } from "@/lib/precios";
@@ -84,6 +85,7 @@ export async function guardarRegistro(
   if (error || !row) return { ok: false, error: error ? mensajeError(error) : "No se pudo guardar (sin permisos)" };
 
   revalidatePath(mod.ruta, "layout");
+  if (modKey === "articulos" || modKey === "lineas") publicarCatalogoDespues();
   return { ok: true, id: row.id as string };
 }
 
@@ -103,5 +105,6 @@ export async function eliminarRegistro(modKey: string, id: string): Promise<Resu
   if (error) return { ok: false, error: mensajeError(error) };
   if (!data?.length) return { ok: false, error: "No se pudo eliminar (sin permisos)" };
   revalidatePath(mod.ruta, "layout");
+  if (modKey === "articulos" || modKey === "lineas") publicarCatalogoDespues();
   return { ok: true, id };
 }

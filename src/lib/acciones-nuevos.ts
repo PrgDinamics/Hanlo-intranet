@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSesion } from "@/lib/sesion";
 import { mensajeError } from "@/lib/errores";
 import type { Resultado } from "@/lib/acciones";
+import { publicarCatalogoDespues } from "@/lib/catalogo-web-despues";
 
 /** "Ya lo revisé": el artículo deja de salir como nuevo */
 export async function marcarRevisado(id: string): Promise<Resultado> {
@@ -13,5 +14,6 @@ export async function marcarRevisado(id: string): Promise<Resultado> {
     .eq("id", id).select("id").maybeSingle();
   if (error || !data) return { ok: false, error: error ? mensajeError(error) : "No se pudo marcar (sin permisos)" };
   revalidatePath("/articulos", "layout");
+  publicarCatalogoDespues(); // la web también quita la etiqueta "Nuevo"
   return { ok: true, id };
 }

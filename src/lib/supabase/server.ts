@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import "./silencio";
 import { SUPABASE_KEY, SUPABASE_URL } from "./env";
 
 /**
