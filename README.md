@@ -57,9 +57,15 @@ Y después **`supabase/migrations/20261111000000_impresion_y_opciones.sql`** (11
 
 Y **`supabase/migrations/20261112000000_permiso_revistas.sql`** (12/11/2026: permiso "Revistas virtuales" para los roles).
 
+Y **`supabase/migrations/20261118000000_tc_fijo_empresas_usuario_nuevos.sql`** (18/11/2026: tipo de cambio fijo por empresa, empresas por usuario y artículos nuevos; se puede correr más de una vez).
+
+Y **`supabase/migrations/20261119000000_auditoria_empresas_tc.sql`** (19/11/2026: correcciones de la auditoría; requiere la anterior).
+
+Y **`supabase/migrations/20261120000000_actividad_45_dias.sql`** (20/11/2026: el registro de actividad se guarda 45 días).
+
 * Usuarios creados por fuera de la intranet nacen como vendedor **inactivo** (antes, con el registro abierto de Supabase, alguien podía crearse una cuenta de administrador).
 * Solo los usuarios activos leen datos.
-* Totales, número de cotización e IGV solo los calcula la base; el límite de venta usa el tipo de cambio oficial.
+* Totales, número de cotización e IGV solo los calcula la base; el límite de venta usa el tipo de cambio fijo de la empresa (estándar 3.40, se cambia en Configuración > Empresas).
 * Políticas de seguridad escritas para evaluarse una vez por consulta (listas, dashboard y editor mucho más rápidos con miles de registros).
 * Tipo de cambio entre 1 y 10, ítems con descripción, fotos y logos solo con permiso de artículos.
 
@@ -71,9 +77,9 @@ En **Configuración > Roles y permisos** el Administrador crea roles y marca qu�
 |---|---|
 | **Administrador** (fijo) | Gerencia: todo, incluidos reportes, usuarios, roles y agentes. No se puede editar ni borrar. |
 | **Vendedor** | Cotiza y ve solo lo suyo. |
-| **Coordinador** | Ve todas las cotizaciones y aprueba, mantiene catálogo y precios, sube Excel, tipo de cambio y formas de pago. Sin reportes. |
+| **Coordinador** | Ve todas las cotizaciones y aprueba, mantiene catálogo y precios, sube Excel y formas de pago. Sin reportes. |
 
-Permisos disponibles: ver todas las cotizaciones, aprobar, clientes, artículos, importar Excel, tipo de cambio, formas de pago, empresas, reportes, registro de actividad y revistas virtuales. Crear clientes o artículos también se puede dar desde el agente comercial (vale cualquiera de los dos), y el límite de venta sigue siempre en el agente. Usuarios, roles y agentes son exclusivos del Administrador; un rol que no es Administrador tampoco puede cargar las hojas Usuarios y Agentes de la carga inicial.
+Permisos disponibles: ver todas las cotizaciones, aprobar, clientes, artículos, importar Excel, formas de pago, empresas, reportes, registro de actividad y revistas virtuales. Crear clientes o artículos también se puede dar desde el agente comercial (vale cualquiera de los dos), y el límite de venta sigue siempre en el agente. Usuarios, roles y agentes son exclusivos del Administrador; un rol que no es Administrador tampoco puede cargar las hojas Usuarios y Agentes de la carga inicial.
 
 Migración: `20261104000000_roles.sql` (los usuarios existentes quedan como Administrador o Vendedor según tenían). El permiso de revistas llega con `20261112000000_permiso_revistas.sql`.
 
@@ -89,7 +95,7 @@ Antes de entregar se probaron 135 casos de error (accesos sin permiso por la pan
 
 ## Evitar que Supabase se pause (plan gratis)
 
-El plan gratis de Supabase pausa el proyecto tras 7 días sin uso. La ruta `/api/keepalive` hace una consulta real a la base y a Storage (y guarda el T.C. SUNAT del día). La llama una vez al día **GitHub Actions** (`.github/workflows/keepalive.yml`), gratis en un repositorio privado.
+El plan gratis de Supabase pausa el proyecto tras 7 días sin uso. La ruta `/api/keepalive` hace una consulta real a la base y a Storage, y borra el registro de actividad de más de 45 días (el historial de cada cotización no se borra; para guardar algo más tiempo, Registro de actividad > Exportar Excel). La llama una vez al día **GitHub Actions** (`.github/workflows/keepalive.yml`), gratis en un repositorio privado.
 
 1. En Vercel > Settings > Environment Variables agregar `CRON_SECRET` con un texto largo al azar y volver a desplegar.
 2. En GitHub > el repositorio > Settings > Secrets and variables > Actions crear dos secretos:
@@ -141,10 +147,14 @@ El Excel se sube a un bucket privado de Storage (`importaciones`) y se analiza a
 Con `DECOLECTA_TOKEN` (cuenta en https://decolecta.com) se activan:
 
 * Botón **Buscar** junto al RUC/DNI en clientes, proveedores y empresas: completa razón social o nombre y dirección, y avisa si el RUC no está ACTIVO o HABIDO.
-* Botón **Traer T.C. SUNAT de hoy** en Tipos de cambio.
-* Al abrir una cotización nueva, si no hay tipo de cambio del día, se trae solo.
 
 Sin el token todo funciona igual y esos botones no aparecen.
+
+## Empresas por usuario, tipo de cambio y artículos nuevos (18/11/2026)
+
+* **Empresas por usuario:** en Configuración > Usuarios cada usuario tiene una casilla por empresa (RUC). Solo cotiza con las marcadas (y activas); el Administrador, con todas. Quien tiene "Ver y editar las cotizaciones de todos" puede editar, emitir o anular las de cualquier empresa, pero para crear, duplicar o sacar una nueva versión necesita la empresa asignada. Una empresa nueva hay que marcarla a quien deba usarla.
+* **Tipo de cambio:** ya no hay módulo de tipos de cambio ni SUNAT. Cada empresa tiene su T.C. fijo (estándar 3.40, entre 2.50 y 5.00) y toda cotización toma el vigente al guardarse. Para el límite de venta se usa el mayor entre el de la cotización y el de la empresa.
+* **Artículos nuevos:** los que llegan al subir una lista de proveedor salen con la etiqueta "Nuevo" durante 15 días o hasta que alguien pulse "Ya lo revisé" en su ficha. En Artículos se filtran con "Solo nuevos". Los creados a mano no salen como nuevos.
 
 ## Interactividad en el editor
 
