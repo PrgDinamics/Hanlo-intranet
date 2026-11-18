@@ -385,10 +385,6 @@ export function validar(hojas: Record<string, Fila[]>) {
       const ruc = soloDigitos(v["RUC"] ?? "");
       if (ruc.length !== 11) { err(H, fila, `RUC debe tener 11 dígitos (tiene ${ruc.length})`); continue; }
       if (!v["Razón social"]) { err(H, fila, "Falta la razón social"); continue; }
-      const credito = numero(v["Línea de crédito"] ?? "");
-      if (Number.isNaN(credito)) { err(H, fila, "Línea de crédito no es un número"); continue; }
-      const mon = (v["Moneda línea"] || "PEN").toUpperCase();
-      if (!["PEN", "USD"].includes(mon)) { err(H, fila, "Moneda debe ser PEN o USD"); continue; }
       if (!unico(fila, ruc, "RUC")) continue;
       out[H].push({
         fila, clave: ruc,
@@ -396,8 +392,7 @@ export function validar(hojas: Record<string, Fila[]>) {
           direccion: ["Dirección", nulo], telefono: ["Teléfono", nulo], email: ["Correo", nulo],
           contacto_nombre: ["Persona de contacto", nulo], contacto_doc: ["Doc contacto", (x) => nulo(x.slice(0, 15))],
           contacto_cargo: ["Cargo", nulo], contacto_email: ["Correo contacto", nulo],
-          contacto_telefono: ["Teléfono contacto", nulo], linea_credito: ["Línea de crédito", () => credito ?? 0],
-          moneda_credito: ["Moneda línea", () => mon], notas: ["Notas", nulo],
+          contacto_telefono: ["Teléfono contacto", nulo], notas: ["Notas", nulo],
         }),
       });
     }
@@ -459,8 +454,6 @@ export function validar(hojas: Record<string, Fila[]>) {
       if (doc.length !== 11) { err(H, fila, `RUC "${doc}" debe tener 11 dígitos (tiene ${doc.length})`); continue; }
       if (!v["Nombre o razón social"]) { err(H, fila, "Falta el nombre o razón social"); continue; }
       const tp = "juridica"; // solo empresas
-      const cat = sinTildes(v["Categoría"] || "potencial");
-      if (!["regular", "potencial", "inactivo"].includes(cat)) { err(H, fila, "Categoría debe ser Regular, Potencial o Inactivo"); continue; }
       if (!unico(fila, `${tipoDoc}|${doc}`, "Documento")) continue;
       out[H].push({
         fila, clave: `${tipoDoc}|${doc}`,
@@ -468,9 +461,8 @@ export function validar(hojas: Record<string, Fila[]>) {
           direccion: ["Dirección", nulo], telefono: ["Teléfono", nulo], email: ["Correo", nulo],
           contacto_nombre: ["Persona de contacto", nulo], contacto_doc: ["Doc contacto", (x) => nulo(x.slice(0, 15))],
           contacto_cargo: ["Cargo", nulo], contacto_telefono: ["Teléfono contacto", nulo],
-          contacto_email: ["Correo contacto", nulo], categoria: ["Categoría", () => cat], notas: ["Notas", nulo],
+          contacto_email: ["Correo contacto", nulo], notas: ["Notas", nulo],
         }),
-        extra: { agente: v["Agente asignado"] || null },
       });
     }
   }
@@ -624,6 +616,8 @@ export async function ejecutarImportacion(
       const filas = grupo.map((x) => ({
         ...x.datos,
         linea_id: x.extra?.linea ? lineas.get(String(x.extra.linea).toLowerCase()) ?? null : null,
+        // La carga inicial no marca "Nuevo": eso es para lo que llega en las listas de proveedor
+        revisado_at: new Date().toISOString(),
       }));
       const { error } = await supabase.from("articulos").upsert(filas, { onConflict: "codigo" });
       if (error) fallo("Artículos", error.message);
@@ -681,10 +675,7 @@ export async function ejecutarImportacion(
   // Clientes
   if (r.Clientes?.length) {
     for (const grupo of lote(r.Clientes)) {
-      const filas = grupo.map((x) => ({
-        ...x.datos,
-        agente_id: x.extra?.agente ? agentes.get(String(x.extra.agente).toLowerCase()) ?? null : null,
-      }));
+      const filas = grupo.map((x) => x.datos);
       const { error } = await supabase.from("clientes").upsert(filas, { onConflict: "tipo_doc,num_doc" });
       if (error) fallo("Clientes", error.message);
     }

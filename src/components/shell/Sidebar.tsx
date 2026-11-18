@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  ArrowLeftRight, BarChart3, BookOpen, BriefcaseBusiness, Building2, CreditCard, FileText, Layers, LayoutDashboard,
+  BarChart3, BookOpen, BriefcaseBusiness, Building2, CreditCard, FileText, Layers, LayoutDashboard,
   FileUp, History, Menu, Package, ShieldCheck, Truck, UserCog, Users, X,
 } from "lucide-react";
 import s from "./shell.module.css";
@@ -44,7 +44,6 @@ const NAV: { grupo: string; items: ItemNav[] }[] = [
       { href: "/configuracion/usuarios", label: "Usuarios", icon: UserCog, admin: true },
       { href: "/configuracion/roles", label: "Roles y permisos", icon: ShieldCheck, admin: true },
       { href: "/configuracion/agentes", label: "Agentes comerciales", icon: BriefcaseBusiness, admin: true },
-      { href: "/configuracion/tipos-cambio", label: "Tipos de cambio", icon: ArrowLeftRight, permiso: "tipos_cambio" },
       { href: "/configuracion/formas-pago", label: "Formas de pago", icon: CreditCard, permiso: "formas_pago" },
       { href: "/configuracion/importar", label: "Importar desde Excel", icon: FileUp, permiso: "importar" },
       { href: "/configuracion/actividad", label: "Registro de actividad", icon: History, permiso: "actividad" },

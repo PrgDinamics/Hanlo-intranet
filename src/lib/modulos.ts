@@ -27,7 +27,7 @@ export type Campo = {
 export type Columna = {
   name: string; // admite rutas "linea.nombre"
   label: string;
-  type?: "text" | "mono" | "money" | "number" | "bool" | "sino" | "date" | "badge" | "image";
+  type?: "text" | "mono" | "money" | "number" | "bool" | "sino" | "date" | "badge" | "image" | "nuevo";
   /** Para type badge: valor → tono */
   tonos?: Record<string, string>;
   labels?: Record<string, string>;
@@ -51,7 +51,7 @@ export type Modulo = {
   filtros?: { name: string; label: string; options: Opcion[] }[];
   admin?: boolean;
   /** Permiso de rol que habilita este módulo de configuración (si no, solo el Administrador) */
-  permisoRol?: "empresas" | "formas_pago" | "tipos_cambio";
+  permisoRol?: "empresas" | "formas_pago";
   detalle?: boolean;
   /** Permiso del agente necesario para crear o editar */
   permiso?: "crea_cliente" | "crea_articulo";
@@ -68,10 +68,6 @@ const FILTRO_ACTIVO = {
     { value: "false", label: "Inactivos" },
   ],
 };
-const MONEDAS: Opcion[] = [
-  { value: "PEN", label: "Soles (S/)" },
-  { value: "USD", label: "Dólares (US$)" },
-];
 /** Unidades sugeridas: el campo es libre (el cliente usa "Juego", "Unidad", etc.) */
 export const UNIDADES = [
   "Unidad", "Juego", "Caja", "Paquete", "Docena", "Ciento", "Millar", "Par", "Set", "Kit",
@@ -84,26 +80,16 @@ export const MODULOS: Record<string, Modulo> = {
     tabla: "clientes",
     titulo: "Clientes",
     singular: "cliente",
-    descripcion: "Empresas (con RUC) a las que se cotiza: regulares y potenciales",
+    descripcion: "Empresas (con RUC) a las que se cotiza",
     ruta: "/clientes",
     permiso: "crea_cliente",
-    select: "*, agente:agentes(nombre)",
+    select: "*",
     // Solo se cotiza a empresas: el documento siempre es RUC
     consulta: { doc: "num_doc", nombre: "nombre", direccion: "direccion" },
     detalle: true,
     busqueda: ["nombre", "num_doc", "contacto_nombre", "email"],
     orden: { col: "nombre", asc: true },
-    filtros: [
-      {
-        name: "categoria",
-        label: "Todas las categorías",
-        options: [
-          { value: "regular", label: "Regular" },
-          { value: "potencial", label: "Potencial" },
-          { value: "inactivo", label: "Inactivo" },
-        ],
-      },
-    ],
+    filtros: [FILTRO_ACTIVO],
     campos: [
       { name: "num_doc", label: "RUC", type: "text", required: true, span: 6, placeholder: "11 dígitos" },
       { name: "nombre", label: "Razón social", type: "text", required: true, span: 6 },
@@ -115,14 +101,6 @@ export const MODULOS: Record<string, Modulo> = {
       { name: "contacto_cargo", label: "Contacto: cargo", type: "text", span: 4 },
       { name: "contacto_telefono", label: "Contacto: teléfono", type: "text", span: 4 },
       { name: "contacto_email", label: "Contacto: correo", type: "email", span: 4 },
-      {
-        name: "categoria", label: "Categoría", type: "select", required: true, span: 6, default: "potencial",
-        options: [
-          { value: "regular", label: "Regular" }, { value: "potencial", label: "Potencial" },
-          { value: "inactivo", label: "Inactivo" },
-        ],
-      },
-      { name: "agente_id", label: "Agente asignado", type: "select", span: 6, ref: { tabla: "agentes", label: "nombre" } },
       { name: "notas", label: "Notas", type: "textarea", span: 12 },
       ACTIVO,
     ],
@@ -131,12 +109,7 @@ export const MODULOS: Record<string, Modulo> = {
       { name: "nombre", label: "Cliente" },
       { name: "contacto_nombre", label: "Contacto" },
       { name: "telefono", label: "Teléfono" },
-      {
-        name: "categoria", label: "Categoría", type: "badge",
-        tonos: { regular: "ok", potencial: "brand", inactivo: "muted" },
-        labels: { regular: "Regular", potencial: "Potencial", inactivo: "Inactivo" },
-      },
-      { name: "agente.nombre", label: "Agente" },
+      { name: "activo", label: "Estado", type: "bool" },
     ],
   },
 
@@ -165,8 +138,6 @@ export const MODULOS: Record<string, Modulo> = {
       { name: "contacto_cargo", label: "Contacto: cargo", type: "text", span: 4 },
       { name: "contacto_telefono", label: "Contacto: teléfono", type: "text", span: 4 },
       { name: "contacto_email", label: "Contacto: correo", type: "email", span: 4 },
-      { name: "linea_credito", label: "Línea de crédito disponible", type: "number", span: 6, step: "0.01", default: 0 },
-      { name: "moneda_credito", label: "Moneda de la línea", type: "select", span: 6, options: MONEDAS, default: "PEN" },
       { name: "notas", label: "Notas", type: "textarea", span: 12 },
       ACTIVO,
     ],
@@ -175,7 +146,6 @@ export const MODULOS: Record<string, Modulo> = {
       { name: "razon_social", label: "Razón social" },
       { name: "contacto_nombre", label: "Contacto" },
       { name: "telefono", label: "Teléfono" },
-      { name: "linea_credito", label: "Línea de crédito", type: "money", monedaCol: "moneda_credito" },
       { name: "activo", label: "Estado", type: "bool" },
     ],
   },
@@ -192,7 +162,10 @@ export const MODULOS: Record<string, Modulo> = {
     detalle: true,
     busqueda: ["descripcion", "codigo"],
     orden: { col: "descripcion", asc: true },
-    filtros: [FILTRO_ACTIVO],
+    filtros: [FILTRO_ACTIVO, {
+      // Filtro especial (ModuloPage): creados hace menos de 15 días y sin "Ya lo revisé"
+      name: "nuevo", label: "Artículos nuevos y anteriores", options: [{ value: "si", label: "Solo nuevos (últimos 15 días)" }],
+    }],
     campos: [
       { name: "codigo", label: "Id artículo (código)", type: "text", required: true, span: 4, upper: true },
       { name: "descripcion", label: "Descripción", type: "text", required: true, span: 8 },
@@ -207,7 +180,7 @@ export const MODULOS: Record<string, Modulo> = {
     columnas: [
       { name: "foto_url", label: "", type: "image" },
       { name: "codigo", label: "Código", type: "mono" },
-      { name: "descripcion", label: "Descripción" },
+      { name: "descripcion", label: "Descripción", type: "nuevo" },
       { name: "linea.nombre", label: "Línea" },
       { name: "unidad", label: "Und." },
       { name: "stock_ref", label: "Stock", type: "number" },
@@ -269,6 +242,10 @@ export const MODULOS: Record<string, Modulo> = {
       {
         name: "costo_impresion", label: "Costo por impresión de logo (S/)", type: "number", span: 6, default: 0.5, step: "0.01",
         hint: "Se suma al costo del producto antes del factor. Ej. 2,000 und a 1 color = 2,000 impresiones × S/ 0.50",
+      },
+      {
+        name: "tipo_cambio", label: "Tipo de cambio (S/ por US$)", type: "number", required: true, span: 6, default: 3.4, step: "0.01",
+        hint: "Fijo para las cotizaciones en dólares de esta empresa (entre 2.50 y 5.00). Estándar 3.40",
       },
       { name: "pie_cotizacion", label: "Pie de cotización", type: "textarea", span: 12, hint: "Condiciones, cuentas bancarias, etc. Se imprime al final" },
       { name: "logo_url", label: "Logo", type: "image", span: 12 },
@@ -337,34 +314,6 @@ export const MODULOS: Record<string, Modulo> = {
       { name: "dias_credito", label: "Días de crédito", type: "number" },
       { name: "recargo_pct", label: "Recargo %", type: "number" },
       { name: "activo", label: "Estado", type: "bool" },
-    ],
-  },
-
-  tipos_cambio: {
-    key: "tipos_cambio",
-    tabla: "tipos_cambio",
-    titulo: "Tipos de cambio",
-    singular: "tipo de cambio",
-    descripcion: "Historial diario del dólar. Las cotizaciones toman el último vigente (venta)",
-    ruta: "/configuracion/tipos-cambio",
-    select: "*",
-    admin: true,
-    permisoRol: "tipos_cambio",
-    busqueda: [],
-    orden: { col: "fecha", asc: false },
-    campos: [
-      { name: "fecha", label: "Fecha", type: "date", required: true, span: 4 },
-      { name: "compra", label: "Compra", type: "number", required: true, span: 4, step: "0.0001" },
-      { name: "venta", label: "Venta", type: "number", required: true, span: 4, step: "0.0001" },
-    ],
-    columnas: [
-      { name: "fecha", label: "Fecha", type: "date" },
-      { name: "compra", label: "Compra", type: "number", decimales: 3 },
-      { name: "venta", label: "Venta", type: "number", decimales: 3 },
-      {
-        name: "fuente", label: "Origen", type: "badge",
-        tonos: { sunat: "brand", manual: "muted" }, labels: { sunat: "SUNAT", manual: "Manual" },
-      },
     ],
   },
 };

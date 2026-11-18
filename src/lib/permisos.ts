@@ -9,7 +9,6 @@ export const PERMISOS = [
   { clave: "clientes", grupo: "Maestros", label: "Crear y editar clientes" },
   { clave: "articulos", grupo: "Maestros", label: "Crear y editar artículos, precios, proveedores y líneas" },
   { clave: "importar", grupo: "Maestros", label: "Subir Excel (listas de stock y carga inicial)" },
-  { clave: "tipos_cambio", grupo: "Configuración", label: "Tipo de cambio" },
   { clave: "formas_pago", grupo: "Configuración", label: "Formas de pago" },
   { clave: "empresas", grupo: "Configuración", label: "Empresas (factores, pie de cotización, logo)" },
   { clave: "reportes", grupo: "Gerencia", label: "Reportes" },

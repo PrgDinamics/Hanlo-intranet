@@ -14,6 +14,8 @@ export type UsuarioInput = {
   rol_id: string;
   agente_id: string | null;
   activo: boolean;
+  /** Empresas (RUC) con las que puede cotizar. El Administrador cotiza con todas */
+  empresas: string[];
 };
 
 export async function guardarUsuario(u: UsuarioInput): Promise<Resultado> {
@@ -24,6 +26,7 @@ export async function guardarUsuario(u: UsuarioInput): Promise<Resultado> {
   if (u.password && u.password.length < 8) return { ok: false, error: "La contraseña debe tener al menos 8 caracteres" };
   const { data: rol } = await supabase.from("roles").select("id, sistema").eq("id", u.rol_id).maybeSingle();
   if (!rol) return { ok: false, error: "Elige un rol" };
+  if (!rol.sistema && !(u.empresas ?? []).length) return { ok: false, error: "Marca al menos una empresa con la que puede cotizar" };
   if (u.id === perfil.id && (!rol.sistema || !u.activo)) {
     return { ok: false, error: "No puedes quitarte el rol de Administrador ni desactivarte a ti mismo" };
   }
@@ -61,6 +64,12 @@ export async function guardarUsuario(u: UsuarioInput): Promise<Resultado> {
     .update({ nombre, email, rol_id: rol.id, agente_id: u.agente_id || null, activo: u.activo })
     .eq("id", id);
   if (error) return { ok: false, error: mensajeError(error) };
+
+  // Empresas asignadas: se reemplazan por las marcadas (al Administrador no le hace falta, ve todas)
+  // En un solo paso en la base: si algo falla, el usuario conserva las que tenía
+  const empresas = rol.sistema ? [] : [...new Set(u.empresas ?? [])];
+  const { error: eEmp } = await supabase.rpc("asignar_empresas", { p_perfil: id, p_empresas: empresas });
+  if (eEmp) return { ok: false, error: mensajeError(eEmp) };
 
   revalidatePath("/configuracion/usuarios");
   return { ok: true, id };

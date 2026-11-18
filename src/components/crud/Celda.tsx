@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/Badge";
 import { FotoZoom } from "@/components/ui/FotoZoom";
 import { getPath, type Columna } from "@/lib/modulos";
 import { fecha, money, num } from "@/lib/format";
+import { esNuevo } from "@/lib/nuevos";
 import ui from "@/components/ui/ui.module.css";
 
 export function Celda({ col, row }: { col: Columna; row: Record<string, unknown> }) {
@@ -24,6 +25,14 @@ export function Celda({ col, row }: { col: Columna; row: Record<string, unknown>
       return <span className={ui.mono}>{String(v ?? "")}</span>;
     case "image":
       return <FotoZoom src={v ? String(v) : null} titulo={String(row.descripcion ?? row.nombre ?? "")} tam={40} />;
+    case "nuevo":
+      // Texto con la etiqueta "Nuevo" (artículos de una lista de proveedor, 15 días o hasta revisarlos)
+      return (
+        <>
+          {v === null || v === undefined ? "" : String(v)}
+          {esNuevo(row.created_at, row.revisado_at) && <> <Badge tono="info">Nuevo</Badge></>}
+        </>
+      );
     default:
       return <>{v === null || v === undefined ? "" : String(v)}</>;
   }

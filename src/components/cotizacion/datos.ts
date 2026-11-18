@@ -1,7 +1,6 @@
 import "server-only";
 import { getSesion, puede } from "@/lib/sesion";
 import { consultaHabilitada } from "@/lib/decolecta";
-import { asegurarTipoCambioHoy } from "@/lib/tipo-cambio";
 
 export type PrecioCat = {
   id: string;
@@ -29,14 +28,15 @@ export type ArticuloCat = {
   linea: string | null;
   stock_ref: number | null;
   empaque: string | null;
+  created_at: string;
+  revisado_at: string | null;
   precios: PrecioCat[];
 };
 export type DatosEditor = {
-  empresas: { id: string; razon_social: string; igv_pct: number; margen_pct: number; factores: string; costo_impresion: number }[];
-  clientes: { id: string; nombre: string; num_doc: string; agente_id: string | null }[];
+  empresas: { id: string; razon_social: string; igv_pct: number; margen_pct: number; factores: string; costo_impresion: number; tipo_cambio: number }[];
+  clientes: { id: string; nombre: string; num_doc: string }[];
   agentes: { id: string; nombre: string }[];
   formas: { id: string; nombre: string; dias_credito: number; recargo_pct: number }[];
-  tipoCambio: number | null;
   /** Solo los artículos que ya están en la cotización; el resto se busca con buscarCatalogo */
   articulos: ArticuloCat[];
   agenteUsuario: string | null;
@@ -51,7 +51,7 @@ export type DatosEditor = {
  * Supabase devuelve como máximo 1000 filas por consulta: se pide por páginas.
  * Las páginas se piden de 4 en 4 en paralelo (con 5,000 artículos baja de ~5 viajes seguidos a 2).
  */
-async function todos<T>(pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null }>) {
+async function todos<T>(pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error?: { message: string } | null }>) {
   const out: T[] = [];
   const TAM = 1000;
   const EN_PARALELO = 4;
@@ -60,7 +60,9 @@ async function todos<T>(pagina: (desde: number, hasta: number) => PromiseLike<{ 
       Array.from({ length: EN_PARALELO }, (_, i) => pagina((bloque + i) * TAM, (bloque + i) * TAM + TAM - 1)),
     );
     let completo = true;
-    for (const { data } of res) {
+    for (const { data, error } of res) {
+      // Una página que falla no deja la lista cortada sin avisar
+      if (error) throw new Error(`No se pudo cargar la lista completa: ${error.message}`);
       out.push(...(data ?? []));
       if (!data || data.length < TAM) { completo = false; break; }
     }
@@ -70,7 +72,7 @@ async function todos<T>(pagina: (desde: number, hasta: number) => PromiseLike<{ 
 }
 
 const SELECT_CATALOGO =
-  "id, codigo, descripcion, detalle, unidad, foto_url, stock_ref, empaque, linea:lineas(nombre), " +
+  "id, codigo, descripcion, detalle, unidad, foto_url, stock_ref, empaque, created_at, revisado_at, linea:lineas(nombre), " +
   "precios:articulo_proveedor(id, proveedor_id, precio_compra, precio_venta, precio_ciento, precio_millar, " +
   "desde_ciento, desde_millar, stock, stock_al, moneda, preferido, proveedor:proveedores(razon_social), " +
   "colores:articulo_proveedor_color(color, stock))";
@@ -122,24 +124,28 @@ export async function buscarEnCatalogo(q: string): Promise<ArticuloCat[]> {
 }
 
 /** Lo que el editor de cotizaciones necesita al abrir. Los artículos se buscan aparte, a pedido. */
-export async function cargarDatosEditor(articuloIds: string[] = []): Promise<DatosEditor> {
+export async function cargarDatosEditor(articuloIds: string[] = [], empresaDeLaCotizacion?: string): Promise<DatosEditor> {
   const { supabase, perfil, permisos } = await getSesion();
-  const [emp, cliData, age, fp, tc, articulos] = await Promise.all([
-    supabase.from("empresas").select("id, razon_social, igv_pct, margen_pct, factores, costo_impresion").eq("activo", true).order("razon_social"),
-    todos((a, b) => supabase.from("clientes").select("id, nombre, num_doc, agente_id").eq("activo", true).order("nombre").range(a, b)),
+  const [emp, asignadas, cliData, age, fp, articulos] = await Promise.all([
+    supabase.from("empresas").select("id, razon_social, igv_pct, margen_pct, factores, costo_impresion, tipo_cambio").eq("activo", true).order("razon_social"),
+    supabase.from("perfil_empresas").select("empresa_id").eq("perfil_id", perfil.id),
+    todos((a, b) => supabase.from("clientes").select("id, nombre, num_doc").eq("activo", true).order("nombre").range(a, b)),
     supabase.from("agentes").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("formas_pago").select("id, nombre, dias_credito, recargo_pct").eq("activo", true).order("dias_credito"),
-    supabase.from("tipos_cambio").select("fecha, venta").order("fecha", { ascending: false }).limit(1).maybeSingle(),
     articulosPorId(supabase, articuloIds),
   ]);
 
   return {
-    empresas: emp.data ?? [],
+    // Solo las empresas (RUC) asignadas al usuario; el Administrador cotiza con todas
+    empresas: (emp.data ?? [])
+      .filter((e) => permisos.es_admin || (asignadas.data ?? []).some((a) => a.empresa_id === e.id)
+        // Quien ve y edita las cotizaciones de todos puede editar la de cualquier empresa (no crear nuevas)
+        || (e.id === empresaDeLaCotizacion && puede(permisos, "cotizaciones_todas")))
+      .map((e) => ({ ...e, tipo_cambio: Number(e.tipo_cambio) })),
     clientes: cliData as DatosEditor["clientes"],
     // Un vendedor solo puede asignarse a sí mismo; quien ve todas las cotizaciones elige cualquier agente
     agentes: puede(permisos, "cotizaciones_todas") ? age.data ?? [] : (age.data ?? []).filter((x) => x.id === perfil.agente_id),
     formas: fp.data ?? [],
-    tipoCambio: (await asegurarTipoCambioHoy(tc.data?.fecha ?? null)) ?? tc.data?.venta ?? null,
     agenteUsuario: perfil.agente_id,
     consulta: consultaHabilitada(),
     creaCliente: permisos.crea_cliente,

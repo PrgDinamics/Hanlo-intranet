@@ -14,6 +14,8 @@ import { ultimosPreciosCliente, type UltimoPrecio } from "@/lib/acciones-busqued
 import { buscarCatalogo } from "@/lib/acciones-catalogo";
 import { RegistroForm } from "@/components/crud/RegistroForm";
 import { convertir, fecha, money, num, round, SIMBOLO, type Moneda } from "@/lib/format";
+import { Badge } from "@/components/ui/Badge";
+import { esNuevo } from "@/lib/nuevos";
 import {
   aCentimoArriba, aCotizacion, costoMaximo, FACTORES_DEFECTO, minimoVenta, parseFactores, precioPorCantidad, TRAMO_LABEL, ventaConFactor,
   type ContextoPrecio,
@@ -69,7 +71,8 @@ export function Editor({
   );
   const empresa = datos.empresas.find((e) => e.id === cab.empresa_id);
   const igvPct = Number(empresa?.igv_pct ?? 18);
-  const tc = Number(cab.tipo_cambio) || 0;
+  // T.C. fijo de la empresa (Configuración > Empresas); al guardar, toda cotización toma el vigente
+  const tc = Number(empresa?.tipo_cambio) || Number(cab.tipo_cambio) || 0;
   const moneda = cab.moneda as Moneda;
 
   // Factores de venta (venta = costo ÷ factor) y recargo según forma de pago
@@ -90,7 +93,7 @@ export function Editor({
     const emp = datos.empresas.find((e) => e.id === c.empresa_id);
     return {
       // El margen ahora lo da el factor de cada ítem; el IGV se suma al total
-      moneda: c.moneda, tipoCambio: Number(c.tipo_cambio) || 0, incluyeIgv: c.precios_incluyen_igv,
+      moneda: c.moneda, tipoCambio: Number(emp?.tipo_cambio) || Number(c.tipo_cambio) || 0, incluyeIgv: c.precios_incluyen_igv,
       igvPct: Number(emp?.igv_pct ?? 18), margenPct: 0,
     };
   };
@@ -179,6 +182,19 @@ export function Editor({
     return { ...n, precio_unitario: precio, precio_costo: costo };
   };
 
+  // Cotización nueva: al cambiar de empresa cambian factores, IGV, costo de impresión y T.C.; se recalculan los ítems
+  const [empresaPrevia, setEmpresaPrevia] = useState(cab.empresa_id);
+  if (empresaPrevia !== cab.empresa_id) {
+    setEmpresaPrevia(cab.empresa_id);
+    const validos = opcionesFactor;
+    setItems((list) => list.map((i) => {
+      if (!i.articulo_id) return i;
+      // Si el factor no existe en la empresa nueva, se deja sin factor para que lo elijan
+      const factor = i.factor && validos.includes(i.factor) ? i.factor : null;
+      return repreciar(i, { factor });
+    }));
+  }
+
   const cambiarFactor = (it: ItemState, factor: number | null) =>
     setItems((list) => list.map((i) => (i.key === it.key ? repreciar(i, { factor }) : i)));
 
@@ -217,7 +233,7 @@ export function Editor({
           ? repreciar(i, {}, c2)
           : {
               ...i,
-              precio_unitario: round(convertir(i.precio_unitario, moneda, nueva, tc), 4),
+              precio_unitario: round(convertir(i.precio_unitario, moneda, nueva, tc), 2),
               precio_costo: round(convertir(i.precio_costo, moneda, nueva, tc), 4),
             },
       ),
@@ -254,16 +270,6 @@ export function Editor({
   const guardar = (emitir: boolean) => {
     setIntentado(true);
     setError(null);
-    // T.C.: obligatorio en dólares y entre 1 y 10 (mismas reglas que el servidor y la base)
-    const tcCab = cab.tipo_cambio === null || String(cab.tipo_cambio) === "" ? null : Number(cab.tipo_cambio);
-    const errorTc = tcCab === null
-      ? (cab.moneda === "USD" ? "Registra el tipo de cambio: es obligatorio en cotizaciones en dólares" : null)
-      : !(tcCab >= 1 && tcCab <= 10) ? "El tipo de cambio debe estar entre 1 y 10 (ej. 3.75)" : null;
-    if (errorTc) {
-      setError(errorTc);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
     const sinFactor = items.findIndex((it) => !it.factor && !!maxDe(artPorId.get(it.articulo_id ?? ""), it.cantidad || 1));
     if (sinFactor >= 0) {
       setError(`Ítem ${sinFactor + 1}: elige un factor para calcular el precio.`);
@@ -329,7 +335,10 @@ export function Editor({
           <div className={`${ui.cardBody} ${ui.grid}`}>
             <label className={`${ui.field} ${ui.span6}`}>
               <span className={`${ui.label} ${ui.req}`}>Empresa que cotiza</span>
-              <select className={ui.input} value={cab.empresa_id} onChange={(e) => setC("empresa_id", e.target.value)}
+              <select className={ui.input} value={cab.empresa_id} onChange={(e) => {
+                  const emp = datos.empresas.find((x) => x.id === e.target.value);
+                  setCab((c) => ({ ...c, empresa_id: e.target.value, tipo_cambio: emp ? Number(emp.tipo_cambio) : c.tipo_cambio }));
+                }}
                 disabled={!!cab.id}>
                 {datos.empresas.map((e) => <option key={e.id} value={e.id}>{e.razon_social}</option>)}
               </select>
@@ -342,10 +351,7 @@ export function Editor({
                 value={cab.cliente_id}
                 invalid={intentado && !cab.cliente_id}
                 placeholder="Buscar empresa por razón social o RUC..."
-                onChange={(v) => {
-                  const cli = datos.clientes.find((c) => c.id === v);
-                  setCab((c) => ({ ...c, cliente_id: v, agente_id: c.agente_id || cli?.agente_id || null }));
-                }}
+                onChange={(v) => setC("cliente_id", v)}
               />
               {datos.creaCliente && (
                 <button type="button" className={`${ui.btn} ${s.addCli}`} title="Registrar cliente nuevo" onClick={() => setNuevoCliente(true)}>
@@ -380,8 +386,9 @@ export function Editor({
                   <option value="PEN">Soles</option>
                   <option value="USD">Dólares</option>
                 </select>
-                <input className={ui.input} type="number" onWheel={(e) => e.currentTarget.blur()} step="0.0001" min="1" max="10" title="Tipo de cambio (venta), entre 1 y 10"
-                  value={cab.tipo_cambio ?? ""} onChange={(e) => setC("tipo_cambio", e.target.value ? Number(e.target.value) : null)} />
+                <input className={`${ui.input} ${s.precioFijo}`} readOnly tabIndex={-1} aria-label="Tipo de cambio"
+                  title="Tipo de cambio fijo de la empresa (se cambia en Configuración > Empresas)"
+                  value={tc ? `T.C. ${num(tc, 2)}` : ""} />
               </div>
             </div>
             <label className={`${ui.field} ${ui.span3}`}>
@@ -590,7 +597,8 @@ export function Editor({
                             <input className={`${ui.input} ${s.cellInput} ${s.right}`} type="number" onWheel={(e) => e.currentTarget.blur()} min={art ? aCentimoArriba(minimoVenta(art.precios, q, ctx, impItem).minimo) : 0} step="0.01"
                               value={it.precio_unitario}
                               style={bajo ? { borderColor: "var(--danger)" } : undefined}
-                              onChange={(e) => setI(it.key, { precio_unitario: Number(e.target.value) })} />
+                              onChange={(e) => setI(it.key, { precio_unitario: Number(e.target.value) })}
+                              onBlur={() => setI(it.key, { precio_unitario: round(it.precio_unitario, 2) })} />
                           )}
                           {maxItem ? (
                             <div className={s.maxTag}>
@@ -802,7 +810,9 @@ function Catalogo({
             <li key={a.id} className={s.catItem}>
               <FotoZoom src={a.foto_url} titulo={a.descripcion} tam={52} className={s.catZoom} />
               <div className={s.catInfo}>
-                <div className={s.catTitle}>{a.descripcion}</div>
+                <div className={s.catTitle}>
+                  {a.descripcion}{esNuevo(a.created_at, a.revisado_at) && <> <Badge tono="info">Nuevo</Badge></>}
+                </div>
                 <div className={s.meta}>
                   {a.codigo} · {a.unidad}{a.linea ? ` · ${a.linea}` : ""}
                   {a.stock_ref !== null ? ` · stock ${num(a.stock_ref, 0)}` : ""}

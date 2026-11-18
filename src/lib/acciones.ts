@@ -58,12 +58,10 @@ export async function guardarRegistro(
   }
   if (modKey === "formas_pago") data.recargo_pct = Number(data.recargo_pct ?? 0);
 
-  if (modKey === "tipos_cambio") {
-    data.fuente = "manual"; // registrado o corregido a mano
-    const [c, v] = [Number(data.compra), Number(data.venta)];
-    // Evita errores de tipeo como 376 en vez de 3.76: el sol nunca ha estado fuera de este rango
-    if (!(c >= 1 && c <= 10 && v >= 1 && v <= 10)) return { ok: false, error: "El tipo de cambio debe estar entre 1 y 10 soles por dólar (ej. 3.752)" };
-    if (c > v) return { ok: false, error: "La compra no puede ser mayor que la venta" };
+  if (modKey === "empresas" && "tipo_cambio" in data) {
+    const tc = Number(data.tipo_cambio);
+    // Evita errores de tipeo como 340 en vez de 3.40
+    if (!(tc >= 2.5 && tc <= 5)) return { ok: false, error: "El tipo de cambio debe estar entre 2.50 y 5.00 soles por dólar (ej. 3.40)" };
   }
   if (modKey === "formas_pago" && Number(data.recargo_pct) > 100) return { ok: false, error: "El recargo no puede ser mayor a 100%" };
   if (modKey === "empresas" && Number(data.igv_pct) > 100) return { ok: false, error: "El IGV no puede ser mayor a 100%" };
@@ -74,6 +72,9 @@ export async function guardarRegistro(
     if (ruc.length !== 11) return { ok: false, error: "El RUC debe tener 11 dígitos. Solo se registran empresas" };
     Object.assign(data, { num_doc: ruc, tipo_doc: "RUC", tipo_persona: "juridica" });
   }
+
+  // Un artículo creado a mano no sale como "Nuevo": eso es para los que llegan en una lista de proveedor
+  if (modKey === "articulos" && !id) data.revisado_at = new Date().toISOString();
 
   const { supabase } = await getSesion(); // sin sesión: lleva al login
   const q = id

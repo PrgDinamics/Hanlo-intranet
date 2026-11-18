@@ -6,7 +6,7 @@ import { getSesion } from "@/lib/sesion";
 import { mensajeError } from "@/lib/errores";
 import type { Resultado } from "@/lib/acciones";
 import { TRANSICIONES, type EstadoCotizacion } from "@/lib/estados";
-import { minimoVenta } from "@/lib/precios";
+import { costoMaximo, minimoVenta, ventaConFactor } from "@/lib/precios";
 
 /** Ítem sin stock suficiente según las listas de proveedores más recientes */
 export type Faltante = { orden: number; descripcion: string; color: string | null; cantidad: number; disponible: number };
@@ -60,14 +60,6 @@ function filaVacia(i: ItemInput) {
     && !Number(i.precio_unitario) && (!Number(i.cantidad) || Number(i.cantidad) === 1);
 }
 
-/** T.C. de la cotización: obligatorio en dólares y, si se escribe, entre 1 y 10 (igual que la base) */
-function validarTipoCambio(moneda: string, tipoCambio: number | null): string | null {
-  const tc = tipoCambio === null || tipoCambio === undefined || String(tipoCambio) === "" ? null : Number(tipoCambio);
-  if (tc === null) return moneda === "USD" ? "Registra el tipo de cambio: es obligatorio en cotizaciones en dólares" : null;
-  if (!(tc >= 1 && tc <= 10)) return "El tipo de cambio debe estar entre 1 y 10 (ej. 3.75)";
-  return null;
-}
-
 function revalidar(id?: string) {
   revalidatePath("/cotizaciones");
   revalidatePath("/");
@@ -80,8 +72,6 @@ export async function guardarCotizacion(
   await getSesion(); // sin sesión: lleva al login antes de revisar nada
   if (!cab.empresa_id) return { ok: false, error: "Selecciona la empresa que cotiza" };
   if (!cab.cliente_id) return { ok: false, error: "Selecciona el cliente" };
-  const tcError = validarTipoCambio(cab.moneda, cab.tipo_cambio);
-  if (tcError) return { ok: false, error: tcError };
   // Solo se descartan las filas totalmente vacías (como nace una fila nueva en el editor)
   // Precios con 2 decimales (los del factor ya vienen así; esto cubre los escritos a mano)
   const limpios = items.filter((i) => !filaVacia(i))
@@ -101,22 +91,40 @@ export async function guardarCotizacion(
 
   const { supabase } = await getSesion(); // sin sesión: lleva al login
 
+  // Una cotización ya guardada no cambia de empresa: se revisa la guardada, no la que mande el navegador
+  if (cab.id) {
+    const { data: actual } = await supabase.from("cotizaciones").select("empresa_id").eq("id", cab.id).maybeSingle();
+    if (!actual) return { ok: false, error: "Cotización no encontrada" };
+    cab = { ...cab, empresa_id: actual.empresa_id as string };
+  }
+  // Solo se cotiza con las empresas asignadas al usuario (Configuración > Usuarios).
+  // Modificar una ya creada también lo permite "Ver y editar las cotizaciones de todos"
+  const [{ data: puedeEmpresa }, { data: emp, error: eEmp }, { data: forma }] = await Promise.all([
+    supabase.rpc(cab.id ? "puede_modificar_empresa" : "puede_cotizar_empresa", { p_empresa: cab.empresa_id }),
+    supabase.from("empresas").select("igv_pct, margen_pct, costo_impresion, tipo_cambio").eq("id", cab.empresa_id).single(),
+    cab.forma_pago_id
+      ? supabase.from("formas_pago").select("recargo_pct").eq("id", cab.forma_pago_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  if (!puedeEmpresa) return { ok: false, error: "No tienes permiso para cotizar con esta empresa" };
+  if (eEmp || !emp) return { ok: false, error: `No se pudo leer la empresa: ${mensajeError(eEmp)}. Intenta de nuevo.` };
+  // T.C. fijo de la empresa (estándar 3.40): toda cotización que se guarda toma el vigente
+  const tc = Number(emp.tipo_cambio);
+  const recargo = Number(forma?.recargo_pct ?? 0);
+  cab = { ...cab, tipo_cambio: tc };
+
   // Regla del cliente: el precio de venta nunca baja del costo más alto entre sus proveedores (según cantidad).
   // Con factor (costo ÷ 0.75, etc.) siempre queda por encima; esto protege contra precios escritos a mano.
   const artIds = [...new Set(limpios.map((i) => i.articulo_id).filter(Boolean))] as string[];
   if (artIds.length) {
-    const [{ data: precios, error: ePrecios }, { data: emp, error: eEmp }] = await Promise.all([
-      supabase
-        .from("articulo_proveedor")
-        .select("articulo_id, proveedor_id, precio_venta, precio_ciento, precio_millar, desde_ciento, desde_millar, moneda")
-        .in("articulo_id", artIds),
-      supabase.from("empresas").select("igv_pct, margen_pct, costo_impresion").eq("id", cab.empresa_id).single(),
-    ]);
+    const { data: precios, error: ePrecios } = await supabase
+      .from("articulo_proveedor")
+      .select("articulo_id, proveedor_id, precio_venta, precio_ciento, precio_millar, desde_ciento, desde_millar, moneda")
+      .in("articulo_id", artIds);
     // Sin los precios no se puede revisar el mínimo: no se guarda (nunca se salta la validación)
-    if (ePrecios || eEmp) {
-      return { ok: false, error: `No se pudieron revisar los precios de los proveedores: ${mensajeError(ePrecios ?? eEmp)}. Intenta de nuevo.` };
+    if (ePrecios) {
+      return { ok: false, error: `No se pudieron revisar los precios de los proveedores: ${mensajeError(ePrecios)}. Intenta de nuevo.` };
     }
-    const tc = Number(cab.tipo_cambio) || 0;
     if ((precios ?? []).some((p) => p.moneda !== cab.moneda) && !tc) {
       return { ok: false, error: "Falta el tipo de cambio para convertir precios" };
     }
@@ -131,6 +139,12 @@ export async function guardarCotizacion(
       const { minimo, max } = minimoVenta((precios ?? []).filter((p) => p.articulo_id === i.articulo_id), i.cantidad, ctx, imp);
       // Con precios de proveedor el precio sale del factor: no se acepta un precio sin factor
       if (max && !i.factor) return { ok: false, error: `Ítem ${n + 1}: elige un factor para calcular el precio` };
+      // Con factor el precio lo calcula el servidor (no se confía en el que manda el navegador):
+      // (costo más alto + impresión) ÷ factor + recargo de la forma de pago (+ IGV si los precios lo incluyen)
+      if (max && i.factor) {
+        const costo = costoMaximo((precios ?? []).filter((p) => p.articulo_id === i.articulo_id), i.cantidad, ctx);
+        i.precio_unitario = ventaConFactor(Math.round(((costo?.precio ?? 0) + imp) * 10000) / 10000, i.factor, recargo, ctx);
+      }
       if (minimo > 0 && i.precio_unitario < minimo - 0.00005) {
         const que = max && imp ? "proveedor más alto e impresión" : max ? "proveedor más alto" : "impresión del logo";
         return {

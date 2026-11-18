@@ -71,10 +71,4 @@ export async function consultarDni(dni: string): Promise<DatosDocumento> {
   return { nombre, direccion: null, estado: null, condicion: null };
 }
 
-type TcResp = { buy_price: string; sell_price: string; date: string };
 
-/** Tipo de cambio SUNAT (USD → PEN) del día indicado o el último publicado */
-export async function tipoCambioSunat(fecha?: string) {
-  const r = await get<TcResp>(`/tipo-cambio/sunat${fecha ? `?date=${fecha}` : ""}`);
-  return { fecha: r.date, compra: Number(r.buy_price), venta: Number(r.sell_price) };
-}

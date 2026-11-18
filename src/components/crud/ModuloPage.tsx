@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/ui/PageHeader";
+import { desdeNuevo } from "@/lib/nuevos";
 import { FilterSelect, SearchBox } from "@/components/ui/SearchBox";
 import { Pager, pageRange } from "@/components/ui/Pager";
 import { getSesion, puedeEditar, requireAdmin, requirePermiso } from "@/lib/sesion";
@@ -45,7 +46,9 @@ export async function ModuloPage({
   }
   for (const f of mod.filtros ?? []) {
     const v = str(f.name);
-    if (v) query = query.eq(f.name, v);
+    if (f.name === "nuevo") {
+      if (v === "si") query = query.gte("created_at", desdeNuevo()).is("revisado_at", null);
+    } else if (v) query = query.eq(f.name, v);
   }
   const { data, count, error } = await query.order(mod.orden.col, { ascending: mod.orden.asc }).range(from, to);
   const refs = await cargarRefs(modKey);
