@@ -5,6 +5,8 @@ import { DetalleForm } from "@/components/crud/DetalleForm";
 import { PreciosProveedor, type PrecioRow } from "@/components/crud/PreciosProveedor";
 import { cargarRefs } from "@/components/crud/ModuloPage";
 import { getSesion } from "@/lib/sesion";
+import { diasNuevoRestantes, esNuevo } from "@/lib/nuevos";
+import { MarcarRevisado } from "./MarcarRevisado";
 import ui from "@/components/ui/ui.module.css";
 import d from "@/components/crud/detalle.module.css";
 
@@ -34,6 +36,11 @@ export default async function ArticuloPage({ params }: PageProps<"/articulos/[id
         title={art.descripcion}
         subtitle={<span className={ui.mono}>{art.codigo}</span>}
       />
+      {esNuevo(art.created_at, art.revisado_at) && (
+        <div style={{ marginBottom: 16 }}>
+          <MarcarRevisado id={id} dias={diasNuevoRestantes(art.created_at)} editable={editable} />
+        </div>
+      )}
       <div className={d.layout}>
         <div className={ui.card}>
           <div className={ui.cardHead}><span className={ui.cardTitle}><Package /> Datos del artículo</span></div>

@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AlertCircle, AlertTriangle, CheckCircle2, FileSpreadsheet, Plus, ScanSearch, Upload } from "lucide-react";
 import { analizarLista, importarListaProveedor, type AnalisisLista } from "@/lib/acciones-importar";
 import { prepararYSubir } from "@/lib/aligerar-excel";
@@ -213,7 +214,14 @@ export function ListaProveedor({
           </div>
           <div className={ui.cardBody}>
             <ul className={s.log}>
-              {resultado.log.map((l) => <li key={l}><CheckCircle2 /> {l}</li>)}
+              {resultado.log.map((l) => (
+                <li key={l}>
+                  <CheckCircle2 /> {l}
+                  {/^[1-9][\d,]* artículo\(s\) nuevos/.test(l) && (
+                    <> · <Link href="/articulos?nuevo=si" style={{ color: "var(--brand-ink)", fontWeight: 600 }}>Ver los nuevos</Link></>
+                  )}
+                </li>
+              ))}
             </ul>
           </div>
         </div>

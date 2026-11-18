@@ -5,6 +5,7 @@ import { cargarDatosEditor } from "@/components/cotizacion/datos";
 import { getSesion } from "@/lib/sesion";
 import { EDITABLE, type EstadoCotizacion } from "@/lib/estados";
 import { codigoCotizacion } from "@/lib/format";
+import ui from "@/components/ui/ui.module.css";
 
 export default async function EditarPage({ params }: PageProps<"/cotizaciones/[id]/editar">) {
   const { id } = await params;
@@ -15,7 +16,18 @@ export default async function EditarPage({ params }: PageProps<"/cotizaciones/[i
   ]);
   if (!c) notFound();
   if (!EDITABLE.includes(c.estado as EstadoCotizacion)) redirect(`/cotizaciones/${id}`);
-  const datos = await cargarDatosEditor((items ?? []).map((i) => i.articulo_id as string));
+  const datos = await cargarDatosEditor((items ?? []).map((i) => i.articulo_id as string), c.empresa_id);
+  if (!datos.empresas.some((e) => e.id === c.empresa_id)) {
+    return (
+      <>
+        <PageHeader title={`Editar ${codigoCotizacion(c.serie, c.numero, c.version)}`}
+          back={{ href: `/cotizaciones/${id}`, label: "Volver a la cotización" }} />
+        <div className={`${ui.card} ${ui.cardBody}`}>
+          Esta cotización es de una empresa que no tienes asignada. Pide al administrador que te la asigne en Configuración · Usuarios.
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

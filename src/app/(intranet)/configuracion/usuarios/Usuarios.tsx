@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, KeyRound, Plus, Shield, UserCog } from "lucide-react";
+import { AlertCircle, Building2, KeyRound, Plus, Shield, UserCog } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
@@ -12,13 +12,18 @@ import ui from "@/components/ui/ui.module.css";
 
 type U = {
   id: string; nombre: string; email: string | null; rol_id: string; rol_nombre: string; rol_sistema: boolean;
-  agente_id: string | null; activo: boolean; created_at: string; agente_nombre: string | null; permisos_txt: string;
+  agente_id: string | null; activo: boolean; created_at: string; agente_nombre: string | null; empresas: string[]; empresas_txt: string;
 };
 
-export function Usuarios({ usuarios, agentes, roles, rolVendedor, yo }: {
-  usuarios: U[]; agentes: Opcion[]; roles: Opcion[]; rolVendedor: string; yo: string;
+export function Usuarios({ usuarios, agentes, roles, rolesAdmin, empresas, empresasActivas, rolVendedor, yo }: {
+  usuarios: U[]; agentes: Opcion[]; roles: Opcion[]; rolesAdmin: string[]; empresas: Opcion[]; empresasActivas: string[];
+  rolVendedor: string; yo: string;
 }) {
-  const VACIO: UsuarioInput = { id: null, nombre: "", email: "", password: "", rol_id: rolVendedor, agente_id: null, activo: true };
+  // Un usuario nuevo empieza con todas las empresas activas marcadas: se desmarcan las que no le tocan
+  const VACIO: UsuarioInput = {
+    id: null, nombre: "", email: "", password: "", rol_id: rolVendedor, agente_id: null, activo: true,
+    empresas: [...empresasActivas],
+  };
   const router = useRouter();
   const [form, setForm] = useState<UsuarioInput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,16 +52,16 @@ export function Usuarios({ usuarios, agentes, roles, rolVendedor, yo }: {
       {usuarios.length === 0 ? <Empty /> : (
         <div className={ui.tableWrap}>
           <table className={ui.table}>
-            <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Agente</th><th>Permisos</th><th>Estado</th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Agente</th><th>Empresas</th><th>Estado</th></tr></thead>
             <tbody>
               {usuarios.map((u) => (
                 <tr key={u.id} className={ui.rowLink}
-                  onClick={() => { setError(null); setForm({ id: u.id, nombre: u.nombre, email: u.email ?? "", password: "", rol_id: u.rol_id, agente_id: u.agente_id, activo: u.activo }); }}>
+                  onClick={() => { setError(null); setForm({ id: u.id, nombre: u.nombre, email: u.email ?? "", password: "", rol_id: u.rol_id, agente_id: u.agente_id, activo: u.activo, empresas: u.empresas }); }}>
                   <td className={ui.strong}>{u.nombre} {u.id === yo && <span className={ui.muted}>(tú)</span>}</td>
                   <td>{u.email}</td>
                   <td>{u.rol_sistema ? <Badge tono="brand">{u.rol_nombre}</Badge> : <Badge>{u.rol_nombre}</Badge>}</td>
                   <td>{u.agente_nombre}</td>
-                  <td className={ui.muted}>{u.permisos_txt}</td>
+                  <td className={ui.muted}>{u.empresas_txt}</td>
                   <td>{u.activo ? <Badge tono="ok">Activo</Badge> : <Badge tono="muted">Inactivo</Badge>}</td>
                 </tr>
               ))}
@@ -112,6 +117,27 @@ export function Usuarios({ usuarios, agentes, roles, rolVendedor, yo }: {
                   {agentes.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
                 </select>
               </label>
+              <div className={`${ui.field} ${ui.span12}`}>
+                <span className={ui.label}><Building2 size={13} style={{ verticalAlign: -2 }} /> Empresas con las que puede cotizar</span>
+                {empresas.length === 0 ? <span className={ui.hint}>Aún no hay empresas registradas.</span> : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px" }}>
+                    {empresas.map((e) => {
+                      const esAdmin = rolesAdmin.includes(form.rol_id);
+                      return (
+                        <label key={e.value} className={ui.check}>
+                          <input type="checkbox" disabled={esAdmin}
+                            checked={esAdmin || form.empresas.includes(e.value)}
+                            onChange={(ev) => set("empresas", ev.target.checked
+                              ? [...form.empresas, e.value]
+                              : form.empresas.filter((x) => x !== e.value))} />
+                          {e.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                {rolesAdmin.includes(form.rol_id) && <span className={ui.hint}>El Administrador cotiza con todas las empresas.</span>}
+              </div>
               <div className={ui.span12}>
                 <label className={ui.check}>
                   <input type="checkbox" checked={form.activo} onChange={(e) => set("activo", e.target.checked)} />
@@ -120,6 +146,7 @@ export function Usuarios({ usuarios, agentes, roles, rolVendedor, yo }: {
               </div>
               <p className={`${ui.span12} ${ui.hint}`}>
                 El rol define a qué partes entra (ver Roles y permisos). El agente comercial da la firma de sus cotizaciones y su límite de venta.
+                Al crear una empresa nueva, márcala aquí a quien deba cotizar con ella.
               </p>
             </div>
           </div>

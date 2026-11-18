@@ -6,49 +6,13 @@ import { Pager, pageRange } from "@/components/ui/Pager";
 import { Badge } from "@/components/ui/Badge";
 import { Empty } from "@/components/ui/Empty";
 import { requirePermiso } from "@/lib/sesion";
-import { MODULOS } from "@/lib/modulos";
+import { ACCION, DIAS_ACTIVIDAD, ETIQUETAS, TABLAS, fechaHora, valor } from "@/lib/actividad";
+import { FileSpreadsheet } from "lucide-react";
 import { haceDias } from "@/lib/format";
 import ui from "@/components/ui/ui.module.css";
 import s from "./actividad.module.css";
 
 export const metadata: Metadata = { title: "Registro de actividad" };
-
-const TABLAS: Record<string, { label: string; ruta?: string }> = {
-  clientes: { label: "Clientes", ruta: "/clientes" },
-  articulos: { label: "Artículos", ruta: "/articulos" },
-  articulo_proveedor: { label: "Precios de proveedor" },
-  proveedores: { label: "Proveedores", ruta: "/proveedores" },
-  lineas: { label: "Líneas" },
-  empresas: { label: "Empresas" },
-  agentes: { label: "Agentes" },
-  perfiles: { label: "Usuarios" },
-  formas_pago: { label: "Formas de pago" },
-  tipos_cambio: { label: "Tipos de cambio" },
-  importaciones: { label: "Importaciones" },
-  roles: { label: "Roles y permisos" },
-};
-
-// Nombres legibles de los campos, tomados de los formularios
-const ETIQUETAS: Record<string, string> = {
-  precio_venta: "Precio muestra", precio_ciento: "Precio x ciento", precio_millar: "Precio x millar",
-  precio_compra: "Precio de compra", desde_ciento: "Ciento desde", desde_millar: "Millar desde",
-  codigo_proveedor: "Código del proveedor", preferido: "Preferido", rol: "Rol", rol_id: "Rol", permisos: "Permisos",
-};
-for (const m of Object.values(MODULOS)) for (const c of m.campos) ETIQUETAS[c.name] ??= c.label;
-
-const ACCION = { crear: { label: "Creó", tono: "ok" }, editar: { label: "Editó", tono: "info" }, eliminar: { label: "Eliminó", tono: "danger" }, importar: { label: "Importó", tono: "brand" } } as const;
-
-function valor(v: unknown) {
-  if (v === null || v === undefined || v === "") return "(vacío)";
-  if (typeof v === "boolean") return v ? "Sí" : "No";
-  const t = String(v);
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-/.test(t)) return "(otro registro)";
-  if (/^https?:\/\//.test(t)) return "(imagen)";
-  return t.length > 70 ? t.slice(0, 70) + "…" : t;
-}
-
-const fechaHora = (iso: string) =>
-  new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" }).format(new Date(iso));
 
 export default async function ActividadPage({ searchParams }: PageProps<"/configuracion/actividad">) {
   const sp = await searchParams;
@@ -77,7 +41,13 @@ export default async function ActividadPage({ searchParams }: PageProps<"/config
     <>
       <PageHeader
         title="Registro de actividad"
-        subtitle="Quién creó, editó o eliminó clientes, artículos, precios y configuración. Se guarda 12 meses."
+        subtitle={`Quién creó, editó o eliminó clientes, artículos, precios y configuración. Se guarda ${DIAS_ACTIVIDAD} días: para conservar algo más tiempo, descárgalo en Excel.`}
+        actions={
+          <a className={ui.btn} title="Descarga el registro con los filtros actuales"
+            href={`/api/actividad/excel?${new URLSearchParams(Object.entries({ q, tabla, accion, periodo }).filter(([, v]) => v) as [string, string][])}`}>
+            <FileSpreadsheet /> Exportar Excel
+          </a>
+        }
       />
       <div className={ui.card}>
         <div className={ui.toolbar}>

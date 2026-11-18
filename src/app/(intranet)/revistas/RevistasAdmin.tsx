@@ -229,12 +229,12 @@ export function RevistasAdmin({ sitio, revistas, errorInicial }: { sitio: string
               <div className={ui.grid}>
                 <label className={`${ui.field} ${ui.span6}`}>
                   <span className={ui.label}>Título</span>
-                  <input className={ui.input} value={titulo} maxLength={120} placeholder="Verano al natural 2027" disabled={ocupado}
+                  <input className={ui.input} value={titulo} maxLength={120} disabled={ocupado}
                     onChange={(e) => { setTitulo(e.target.value); if (!slugTocado) setSlug(slugDe(e.target.value)); }} />
                 </label>
                 <label className={`${ui.field} ${ui.span6}`}>
                   <span className={ui.label}>Nombre en la dirección web</span>
-                  <input className={ui.input} value={slug} maxLength={40} placeholder="verano2027" disabled={ocupado}
+                  <input className={ui.input} value={slug} maxLength={40} disabled={ocupado}
                     style={errSlug ? { borderColor: "var(--danger)" } : undefined}
                     onChange={(e) => { setSlugTocado(true); setSlug(e.target.value.toLowerCase().replace(/\s+/g, "-")); }} />
                   <span className={s.url}>

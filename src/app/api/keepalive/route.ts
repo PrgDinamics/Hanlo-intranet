@@ -1,5 +1,4 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { asegurarTipoCambioHoy } from "@/lib/tipo-cambio";
 
 /**
  * Mantiene activo el proyecto de Supabase (el plan gratis se pausa tras 7 días sin uso).
@@ -15,15 +14,13 @@ export async function GET(request: Request) {
   }
   try {
     const supabase = createAdminClient();
-    // keepalive() es una consulta real a la base y además depura el registro de actividad de más de 12 meses
+    // keepalive() es una consulta real a la base y además borra el registro de actividad de más de 45 días
     const { data, error } = await supabase.rpc("keepalive");
     if (error) throw error;
     // Una lectura a Storage también cuenta como actividad
     await supabase.storage.from("media").list("", { limit: 1 });
-    // De paso deja registrado el T.C. SUNAT del día (si hay DECOLECTA_TOKEN)
-    const tc = await asegurarTipoCambioHoy();
     const empresas = (data as { empresas?: number } | null)?.empresas ?? null;
-    return Response.json({ ok: true, empresas, tipo_cambio: tc, en: new Date().toISOString() });
+    return Response.json({ ok: true, empresas, en: new Date().toISOString() });
   } catch (e) {
     return Response.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }

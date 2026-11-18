@@ -16,7 +16,8 @@ export default async function NuevaPage({ searchParams }: PageProps<"/cotizacion
       <>
         <PageHeader title="Nueva cotización" back={{ href: "/cotizaciones", label: "Cotizaciones" }} />
         <div className={`${ui.card} ${ui.cardBody}`}>
-          Primero registra una empresa en <Link href="/configuracion/empresas" style={{ color: "var(--brand-ink)" }}>Configuración · Empresas</Link>.
+          No tienes empresas para cotizar. El Administrador te las asigna en Configuración · Usuarios
+          (si todavía no hay ninguna, primero se registra en <Link href="/configuracion/empresas" style={{ color: "var(--brand-ink)" }}>Configuración · Empresas</Link>).
         </div>
       </>
     );
@@ -35,9 +36,9 @@ export default async function NuevaPage({ searchParams }: PageProps<"/cotizacion
           id: null,
           empresa_id: datos.empresas[0].id,
           cliente_id: cliente?.id ?? "",
-          agente_id: datos.agenteUsuario ?? cliente?.agente_id ?? null,
+          agente_id: datos.agenteUsuario,
           moneda: "PEN",
-          tipo_cambio: datos.tipoCambio,
+          tipo_cambio: Number(datos.empresas[0].tipo_cambio),
           forma_pago_id: datos.formas[0]?.id ?? null,
           lugar: "Lima",
           fecha_emision: hoyLima(),
