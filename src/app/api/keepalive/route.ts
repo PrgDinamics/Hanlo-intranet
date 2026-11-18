@@ -1,4 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { publicarCatalogo } from "@/lib/catalogo-web";
+import { cpanelConfigurado } from "@/lib/cpanel";
 
 /**
  * Mantiene activo el proyecto de Supabase (el plan gratis se pausa tras 7 días sin uso).
@@ -20,7 +22,9 @@ export async function GET(request: Request) {
     // Una lectura a Storage también cuenta como actividad
     await supabase.storage.from("media").list("", { limit: 1 });
     const empresas = (data as { empresas?: number } | null)?.empresas ?? null;
-    return Response.json({ ok: true, empresas, en: new Date().toISOString() });
+    // Respaldo diario del catálogo de la web (y la etiqueta "Nuevo" vence a los 15 días)
+    const web = cpanelConfigurado() ? await publicarCatalogo() : null;
+    return Response.json({ ok: true, empresas, catalogo_web: web ? (web.ok ? web.info : { error: web.error }) : null, en: new Date().toISOString() });
   } catch (e) {
     return Response.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
