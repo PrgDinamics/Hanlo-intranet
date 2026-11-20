@@ -1,0 +1,30 @@
+.layout { display: grid; grid-template-columns: minmax(280px, 420px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.escena { position: relative; aspect-ratio: 1 / 1; margin: 18px; }
+.circulo { position: absolute; inset: 9%; border-radius: 50%; background: #fcd772; }
+.casilla {
+  position: absolute; width: 30%; aspect-ratio: 1 / 1; border-radius: 16px; background: #fff; border: 2px solid transparent;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12); overflow: hidden; cursor: pointer; padding: 0;
+  display: grid; place-items: center; color: var(--text-3); font-size: 11.5px; text-align: center;
+}
+.casilla img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.casilla.sel { border-color: var(--brand-ink); box-shadow: 0 0 0 3px var(--brand-soft), 0 8px 24px rgba(0, 0, 0, .15); }
+.num { position: absolute; top: 6px; left: 6px; width: 20px; height: 20px; border-radius: 50%; background: #111; color: #fff; font-size: 11px; display: grid; place-items: center; }
+.c1 { left: 4%; top: 6%; }
+.c2 { right: 4%; top: 2%; }
+.c3 { left: 29%; top: 27%; width: 42%; z-index: 2; }
+.c4 { left: 2%; bottom: 10%; width: 27%; }
+.c5 { right: 4%; bottom: 6%; width: 27%; }
+.etiqueta {
+  position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 3; background: #fff; border-radius: 99px;
+  padding: 8px 18px; box-shadow: 0 6px 18px rgba(0, 0, 0, .12); text-align: center; white-space: nowrap;
+}
+.etiqueta b { display: block; font-size: 16px; line-height: 1.1; }
+.etiqueta span { font-size: 11.5px; color: var(--text-2); }
+.editor { display: grid; gap: 12px; }
+.opciones { display: flex; flex-wrap: wrap; gap: 6px; }
+.opciones button[aria-pressed="true"] { border-color: var(--brand-ink); background: var(--brand-soft); }
+.subir input { display: none; }
+.fila { display: flex; gap: 8px; align-items: center; }
+.hint { font-size: 12.5px; color: var(--text-3); }
+.cuenta { font-size: 11.5px; color: var(--text-3); float: right; }
+@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } .escena { max-width: 380px; margin: 18px auto; } }
