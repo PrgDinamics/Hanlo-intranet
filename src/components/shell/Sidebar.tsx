@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  BarChart3, BookOpen, Handshake, BriefcaseBusiness, Building2, CreditCard, FileText, Layers, LayoutDashboard,
+  BarChart3, BookOpen, Handshake, PanelsTopLeft, BriefcaseBusiness, Building2, CreditCard, FileText, Layers, LayoutDashboard,
   FileUp, History, Menu, Package, ShieldCheck, Truck, UserCog, Users, X,
 } from "lucide-react";
 import s from "./shell.module.css";
@@ -35,6 +35,7 @@ const NAV: { grupo: string; items: ItemNav[] }[] = [
     grupo: "Web",
     items: [
       { href: "/revistas", label: "Revistas virtuales", icon: BookOpen, permiso: "revistas" },
+      { href: "/portada-web", label: "Portada de la web", icon: PanelsTopLeft, permiso: "revistas" },
       { href: "/clientes-web", label: "Clientes en la web", icon: Handshake, permiso: "revistas" },
     ],
   },
