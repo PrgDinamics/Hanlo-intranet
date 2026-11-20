@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  BarChart3, BookOpen, BriefcaseBusiness, Building2, CreditCard, FileText, Layers, LayoutDashboard,
+  BarChart3, BookOpen, Handshake, BriefcaseBusiness, Building2, CreditCard, FileText, Layers, LayoutDashboard,
   FileUp, History, Menu, Package, ShieldCheck, Truck, UserCog, Users, X,
 } from "lucide-react";
 import s from "./shell.module.css";
@@ -35,6 +35,7 @@ const NAV: { grupo: string; items: ItemNav[] }[] = [
     grupo: "Web",
     items: [
       { href: "/revistas", label: "Revistas virtuales", icon: BookOpen, permiso: "revistas" },
+      { href: "/clientes-web", label: "Clientes en la web", icon: Handshake, permiso: "revistas" },
     ],
   },
   {
@@ -57,7 +58,8 @@ export function Sidebar({ esAdmin, acciones }: { esAdmin: boolean; acciones: Per
   // Cada opción se muestra según el rol: las de "admin" solo al Administrador
   const visible = (i: ItemNav) => esAdmin || (!i.admin && (!i.permiso || acciones.includes(i.permiso)));
   const grupos = NAV.map((g) => ({ ...g, items: g.items.filter(visible) })).filter((g) => g.items.length);
-  const activo = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  // "/clientes" no debe marcarse en "/clientes-web": coincide la ruta exacta o una subruta
+  const activo = (href: string) => (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/"));
 
   return (
     <>

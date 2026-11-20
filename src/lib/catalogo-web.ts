@@ -54,7 +54,7 @@ export async function armarCatalogoWeb() {
         empaque: texto(a.empaque),
         linea: (a.linea_id as string | null) ?? null,
         foto: texto(a.foto_url),
-        // Misma etiqueta que en la intranet: 15 días o hasta que alguien pulse "Ya lo revisé"
+        // Misma etiqueta que en la intranet: productos creados hace menos de 15 días
         nuevo: esNuevo(a.created_at, a.revisado_at, ahora),
       })),
   };

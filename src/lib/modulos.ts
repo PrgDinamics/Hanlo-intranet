@@ -163,7 +163,7 @@ export const MODULOS: Record<string, Modulo> = {
     busqueda: ["descripcion", "codigo"],
     orden: { col: "descripcion", asc: true },
     filtros: [FILTRO_ACTIVO, {
-      // Filtro especial (ModuloPage): creados hace menos de 15 días y sin "Ya lo revisé"
+      // Filtro especial (ModuloPage): creados hace menos de 15 días (los que ya existían tienen revisado_at)
       name: "nuevo", label: "Artículos nuevos y anteriores", options: [{ value: "si", label: "Solo nuevos (últimos 15 días)" }],
     }],
     campos: [
